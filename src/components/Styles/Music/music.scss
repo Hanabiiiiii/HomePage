@@ -1,0 +1,1815 @@
+/* =========================================================
+   Music Player
+   ========================================================= */
+
+/* =========================================================
+   播放器主体
+   ========================================================= */
+
+.music-card {
+    position: relative;
+
+    width: 100%;
+
+    padding:
+        18px 20px 16px;
+}
+
+.music-top {
+    display: flex;
+
+    align-items: center;
+
+    gap: 14px;
+
+    width: 100%;
+
+    min-width: 0;
+}
+
+.music-cover {
+    display: grid;
+
+    flex:
+        0 0 58px;
+
+    width: 58px;
+    height: 58px;
+
+    overflow: hidden;
+
+    place-items: center;
+
+    border:
+        1px solid rgb(255 255 255 / 22%);
+
+    border-radius: 50%;
+
+    background:
+        radial-gradient(circle at center,
+            rgb(255 255 255 / 78%) 0 6%,
+            transparent 7%),
+        linear-gradient(135deg,
+            rgb(238 130 173 / 62%),
+            rgb(201 149 220 / 48%));
+
+    color: #ffffff;
+
+    font-size: 22px;
+
+    box-shadow:
+        inset 1px -1px 1px rgb(255 255 255 / 70%),
+        0 5px 14px rgb(0 0 0 / 12%);
+}
+
+.music-cover img {
+    display: block;
+
+    width: 100%;
+    height: 100%;
+
+    object-fit: cover;
+}
+
+.music-cover.spinning {
+    animation:
+        music-spin 6s linear infinite;
+}
+
+.music-info {
+    display: flex;
+
+    flex: 1;
+
+    flex-direction: column;
+
+    min-width: 0;
+
+    gap: 4px;
+}
+
+.music-title {
+    overflow: hidden;
+
+    color:
+        var(--text-color);
+
+    font-size: 14px;
+
+    font-weight: 700;
+
+    line-height: 1.45;
+
+    text-overflow: ellipsis;
+
+    white-space: nowrap;
+}
+
+.music-artist {
+    overflow: hidden;
+
+    color:
+        var(--text-secondary);
+
+    font-size: 11px;
+
+    line-height: 1.4;
+
+    text-overflow: ellipsis;
+
+    white-space: nowrap;
+
+    text-shadow:
+        var(--text-shadow-secondary);
+
+    transition:
+        color 0.35s ease,
+        text-shadow 0.35s ease;
+}
+
+/* =========================================================
+   歌词
+   ========================================================= */
+
+.music-lyric-row {
+    display: flex;
+
+    align-items: center;
+
+    gap: 6px;
+
+    width: 100%;
+
+    min-width: 0;
+
+    min-height: 22px;
+
+    margin-top: 10px;
+
+    padding:
+        0 3px;
+}
+
+.music-lyric-icon {
+    display: inline-flex;
+
+    align-items: center;
+
+    justify-content: center;
+
+    flex:
+        0 0 15px;
+
+    width: 15px;
+
+    color:
+        var(--accent-color);
+
+    font-size: 12px;
+
+    line-height: 18px;
+
+    text-align: center;
+}
+
+.music-lyric {
+    display: block;
+
+    width: 100%;
+
+    min-width: 0;
+
+    overflow: hidden;
+
+    color:
+        var(--text-secondary);
+
+    font-size: 13px;
+
+    line-height: 18px;
+
+    text-align: left;
+
+    text-overflow: ellipsis;
+
+    white-space: nowrap;
+
+    text-shadow:
+        var(--text-shadow-secondary);
+
+    transition:
+        color 0.35s ease,
+        text-shadow 0.35s ease,
+        opacity 0.2s ease,
+        transform 0.2s ease;
+}
+
+.music-lyric.is-loading {
+    opacity: 0.68;
+}
+
+.music-lyric.is-error {
+    opacity: 0.5;
+}
+
+.lyric-fade-enter-active,
+.lyric-fade-leave-active {
+    transition:
+        opacity 0.2s ease,
+        transform 0.2s ease;
+}
+
+.lyric-fade-enter-from {
+    opacity: 0;
+
+    transform:
+        translateY(3px);
+}
+
+.lyric-fade-leave-to {
+    opacity: 0;
+
+    transform:
+        translateY(-3px);
+}
+
+/* =========================================================
+   底部控制
+   ========================================================= */
+
+.music-bottom {
+    display: flex;
+
+    align-items: center;
+
+    gap: 10px;
+
+    width: 100%;
+
+    min-width: 0;
+
+    margin-top: 9px;
+}
+
+.music-main-controls {
+    display: flex;
+
+    align-items: center;
+
+    gap: 7px;
+
+    flex:
+        0 0 auto;
+}
+
+.music-control {
+    display: inline-flex;
+
+    align-items: center;
+
+    justify-content: center;
+
+    flex:
+        0 0 30px;
+
+    width: 30px;
+    height: 30px;
+
+    padding: 0;
+
+    border: 0;
+
+    border-radius: 50%;
+
+    color:
+        var(--text-secondary);
+
+    background:
+        transparent;
+
+    font-size: 11px;
+
+    line-height: 1;
+
+    cursor: pointer;
+
+    transition:
+        color 0.35s ease,
+        background 0.25s ease,
+        transform 0.2s ease;
+}
+
+.music-control:hover {
+    color:
+        var(--accent-color);
+
+    background:
+        rgb(255 255 255 / 8%);
+
+    transform:
+        scale(1.06);
+}
+
+.music-play {
+    display: inline-flex;
+
+    align-items: center;
+
+    justify-content: center;
+
+    flex:
+        0 0 40px;
+
+    width: 40px;
+    height: 40px;
+
+    padding: 0;
+
+    border-radius: 50%;
+
+    color:
+        var(--text-color);
+
+    font-size: 13px;
+
+    line-height: 1;
+}
+
+/* =========================================================
+   进度条
+   ========================================================= */
+
+.music-progress-area {
+    display: grid;
+
+    grid-template-columns:
+        34px minmax(70px, 1fr) 34px;
+
+    align-items: center;
+
+    gap: 6px;
+
+    flex: 1;
+
+    min-width: 0;
+}
+
+.music-time {
+    color:
+        var(--text-muted,
+            var(--text-secondary));
+
+    font-size: 9px;
+
+    line-height: 1;
+
+    font-variant-numeric:
+        tabular-nums;
+
+    text-shadow:
+        var(--text-shadow-secondary);
+
+    transition:
+        color 0.35s ease,
+        text-shadow 0.35s ease;
+}
+
+.music-time-end {
+    text-align: right;
+}
+
+.music-progress {
+    appearance: none;
+
+    width: 100%;
+
+    height: 4px;
+
+    margin: 0;
+
+    padding: 0;
+
+    border: 0;
+
+    border-radius: 999px;
+
+    background:
+        linear-gradient(to right,
+            var(--accent-color) 0 var(--progress, 0%),
+            rgb(255 255 255 / 18%) var(--progress, 0%) 100%);
+
+    outline: none;
+
+    cursor: pointer;
+}
+
+.music-progress::-webkit-slider-thumb {
+    appearance: none;
+
+    width: 9px;
+    height: 9px;
+
+    border:
+        1px solid rgb(255 255 255 / 72%);
+
+    border-radius: 50%;
+
+    background:
+        var(--accent-color);
+
+    box-shadow:
+        0 1px 4px rgb(0 0 0 / 20%);
+
+    cursor: pointer;
+}
+
+.music-progress::-moz-range-thumb {
+    width: 9px;
+    height: 9px;
+
+    border:
+        1px solid rgb(255 255 255 / 72%);
+
+    border-radius: 50%;
+
+    background:
+        var(--accent-color);
+
+    box-shadow:
+        0 1px 4px rgb(0 0 0 / 20%);
+
+    cursor: pointer;
+}
+
+/* =========================================================
+   音量
+   ========================================================= */
+
+.music-volume-wrap {
+    position: relative;
+
+    display: flex;
+
+    align-items: flex-end;
+
+    justify-content: center;
+
+    flex:
+        0 0 34px;
+
+    width: 34px;
+
+    height: 42px;
+}
+
+.music-volume-button {
+    position: relative;
+
+    z-index: 10;
+
+    display: inline-flex;
+
+    align-items: center;
+
+    justify-content: center;
+
+    flex:
+        0 0 34px;
+
+    width: 34px;
+    height: 34px;
+
+    padding: 0;
+
+    border: 0;
+
+    border-radius: 50%;
+
+    color:
+        var(--text-secondary);
+
+    background:
+        transparent;
+
+    line-height: 1;
+
+    cursor: pointer;
+
+    transition:
+        color 0.35s ease,
+        background 0.25s ease,
+        transform 0.2s ease;
+}
+
+.music-volume-button:hover {
+    color:
+        var(--accent-color);
+
+    background:
+        rgb(255 255 255 / 8%);
+
+    transform:
+        scale(1.08);
+}
+
+.music-volume-button:active {
+    transform:
+        scale(0.94);
+}
+
+.music-volume-icon-svg {
+    display: block;
+
+    width: 20px;
+    height: 20px;
+
+    flex:
+        0 0 20px;
+}
+
+/* =========================================================
+   竖向音量条
+   ========================================================= */
+
+.music-volume {
+    position: absolute;
+
+    left: 50%;
+
+    bottom: 39px;
+
+    z-index: 9;
+
+    display: flex;
+
+    align-items: center;
+
+    justify-content: center;
+
+    width: 30px;
+    height: 94px;
+
+    padding:
+        8px 0;
+
+    border:
+        1px solid var(--glass-border);
+
+    border-radius: 999px;
+
+    background:
+        var(--glass-background);
+
+    backdrop-filter:
+        blur(var(--glass-blur)) saturate(var(--glass-saturation));
+
+    -webkit-backdrop-filter:
+        blur(var(--glass-blur)) saturate(var(--glass-saturation));
+
+    box-shadow:
+        0 4px 12px rgb(0 0 0 / 12%),
+        inset 1px -1px 1px var(--glass-highlight);
+
+    transform:
+        translateX(-50%);
+
+    transform-origin:
+        center bottom;
+}
+
+.music-volume input {
+    appearance: none;
+
+    width: 4px;
+
+    height: 74px;
+
+    margin: 0;
+
+    padding: 0;
+
+    border: 0;
+
+    border-radius: 999px;
+
+    outline: none;
+
+    cursor: pointer;
+
+    writing-mode:
+        vertical-lr;
+
+    direction: rtl;
+
+    background:
+        linear-gradient(to top,
+            var(--accent-color) 0 var(--volume, 0%),
+            rgb(255 255 255 / 18%) var(--volume, 0%) 100%);
+}
+
+.music-volume input::-webkit-slider-runnable-track {
+    width: 4px;
+
+    height: 74px;
+
+    border: 0;
+
+    border-radius: 999px;
+
+    background:
+        transparent;
+}
+
+.music-volume input::-webkit-slider-thumb {
+    appearance: none;
+
+    width: 10px;
+    height: 10px;
+
+    margin-left: -3px;
+
+    border:
+        1px solid rgb(255 255 255 / 78%);
+
+    border-radius: 50%;
+
+    background:
+        var(--accent-color);
+
+    box-shadow:
+        0 1px 5px rgb(0 0 0 / 18%);
+
+    cursor: pointer;
+}
+
+.music-volume input::-moz-range-track {
+    width: 4px;
+
+    height: 74px;
+
+    border: 0;
+
+    border-radius: 999px;
+
+    background:
+        rgb(255 255 255 / 18%);
+}
+
+.music-volume input::-moz-range-progress {
+    width: 4px;
+
+    border-radius: 999px;
+
+    background:
+        var(--accent-color);
+}
+
+.music-volume input::-moz-range-thumb {
+    width: 10px;
+    height: 10px;
+
+    border:
+        1px solid rgb(255 255 255 / 78%);
+
+    border-radius: 50%;
+
+    background:
+        var(--accent-color);
+
+    box-shadow:
+        0 1px 5px rgb(0 0 0 / 18%);
+
+    cursor: pointer;
+}
+
+/* =========================================================
+   音量展开动画
+   ========================================================= */
+
+.volume-expand-enter-active,
+.volume-expand-leave-active {
+    transition:
+        opacity 0.18s ease,
+        transform 0.18s ease;
+}
+
+.volume-expand-enter-from,
+.volume-expand-leave-to {
+    opacity: 0;
+
+    transform:
+        translateX(-50%) translateY(8px) scale(0.86);
+}
+
+.volume-expand-enter-to,
+.volume-expand-leave-from {
+    opacity: 1;
+
+    transform:
+        translateX(-50%) translateY(0) scale(1);
+}
+
+/* =========================================================
+   错误
+   ========================================================= */
+
+.music-error {
+    margin:
+        5px 0 0;
+
+    color:
+        var(--text-secondary);
+
+    font-size: 10px;
+
+    line-height: 1.5;
+
+    text-align: center;
+
+    text-shadow:
+        var(--text-shadow-secondary);
+
+    transition:
+        color 0.35s ease,
+        text-shadow 0.35s ease;
+}
+
+/* =========================================================
+   空状态
+   ========================================================= */
+
+.music-empty {
+    display: flex;
+
+    align-items: center;
+
+    gap: 13px;
+
+    min-width: 0;
+
+    color:
+        var(--text-secondary);
+}
+
+.music-empty-icon {
+    display: grid;
+
+    flex:
+        0 0 46px;
+
+    width: 46px;
+    height: 46px;
+
+    place-items: center;
+
+    border-radius: 50%;
+
+    background:
+        rgb(255 255 255 / 9%);
+
+    color:
+        var(--accent-color);
+
+    font-size: 21px;
+}
+
+.music-empty-content {
+    flex:
+        1;
+
+    min-width: 0;
+}
+
+.music-empty p {
+    margin:
+        5px 0 0;
+
+    color:
+        var(--text-secondary);
+
+    font-size: 11px;
+
+    line-height: 1.6;
+
+    text-shadow:
+        var(--text-shadow-secondary);
+
+    transition:
+        color 0.35s ease,
+        text-shadow 0.35s ease;
+}
+
+.music-retry {
+    flex:
+        0 0 auto;
+
+    height: 30px;
+
+    padding:
+        0 10px;
+
+    border-radius: 999px;
+
+    color:
+        var(--text-secondary);
+
+    font-size: 11px;
+}
+
+/* =========================================================
+   音乐列表 Modal
+   ========================================================= */
+
+.music-overlay {
+    position: fixed;
+
+    inset: 0;
+
+    z-index: 9999;
+
+    display: flex;
+
+    align-items: center;
+    justify-content: center;
+
+    width: 100vw;
+    height: 100vh;
+
+    padding: 24px;
+
+    overflow: hidden;
+
+    background:
+        rgb(5 4 12 / 30%);
+
+    backdrop-filter:
+        blur(10px);
+
+    -webkit-backdrop-filter:
+        blur(10px);
+}
+
+/* =========================================================
+   Modal 主体
+   ========================================================= */
+
+.music-overlay .music-dialog {
+    position: relative;
+
+    display: flex;
+
+    flex-direction: column;
+
+    width:
+        min(600px,
+            calc(100vw - 48px));
+
+    height:
+        min(560px,
+            calc(100vh - 48px));
+
+    max-height:
+        calc(100vh - 48px);
+
+    padding:
+        20px 20px 16px;
+
+    overflow: hidden;
+
+    border:
+        1px solid var(--glass-border);
+
+    border-radius:
+        24px;
+
+    /*
+   * 默认暗色玻璃
+   */
+    background:
+        rgb(255 255 255 / 7%);
+
+    backdrop-filter:
+        blur(10px) saturate(115%);
+
+    -webkit-backdrop-filter:
+        blur(10px) saturate(115%);
+
+    box-shadow:
+        inset 2px -2px 1px -1px var(--glass-highlight),
+        inset -2px 2px 1px -1px var(--glass-highlight),
+        inset 6px -6px 1px -6px var(--glass-highlight-soft),
+        inset -6px 6px 1px -6px var(--glass-highlight-soft),
+        inset 0 0 2px rgb(0 0 0 / 16%),
+        0 10px 30px rgb(0 0 0 / 18%);
+
+    transform: none;
+
+    transition:
+        background 0.35s ease,
+        border-color 0.35s ease,
+        box-shadow 0.35s ease;
+}
+
+/*
+ * 防止公共液态玻璃 hover
+ * 让整个弹窗上浮
+ */
+
+.music-overlay .music-dialog:hover {
+    transform: none;
+
+    box-shadow:
+        inset 2px -2px 1px -1px var(--glass-highlight),
+        inset -2px 2px 1px -1px var(--glass-highlight),
+        inset 6px -6px 1px -6px var(--glass-highlight-soft),
+        inset -6px 6px 1px -6px var(--glass-highlight-soft),
+        inset 0 0 2px rgb(0 0 0 / 16%),
+        0 10px 30px rgb(0 0 0 / 18%);
+}
+
+/* =========================================================
+   浅色模式 Modal
+   ========================================================= */
+
+html[data-theme='light'] .music-overlay {
+    background:
+        rgb(255 255 255 / 16%);
+
+    backdrop-filter:
+        blur(12px);
+
+    -webkit-backdrop-filter:
+        blur(12px);
+}
+
+html[data-theme='light'] .music-overlay .music-dialog {
+    background:
+        rgb(255 255 255 / 28%);
+
+    border-color:
+        rgb(255 255 255 / 58%);
+
+    backdrop-filter:
+        blur(10px) saturate(112%);
+
+    -webkit-backdrop-filter:
+        blur(10px) saturate(112%);
+
+    box-shadow:
+        inset 2px -2px 1px -1px rgb(255 255 255 / 82%),
+        inset -2px 2px 1px -1px rgb(255 255 255 / 82%),
+        inset 6px -6px 1px -6px rgb(255 255 255 / 44%),
+        inset -6px 6px 1px -6px rgb(255 255 255 / 44%),
+        inset 0 0 2px rgb(70 55 85 / 8%),
+        0 10px 30px rgb(70 55 85 / 14%);
+}
+
+html[data-theme='light'] .music-overlay .music-dialog:hover {
+    box-shadow:
+        inset 2px -2px 1px -1px rgb(255 255 255 / 82%),
+        inset -2px 2px 1px -1px rgb(255 255 255 / 82%),
+        inset 6px -6px 1px -6px rgb(255 255 255 / 44%),
+        inset -6px 6px 1px -6px rgb(255 255 255 / 44%),
+        inset 0 0 2px rgb(70 55 85 / 8%),
+        0 10px 30px rgb(70 55 85 / 14%);
+}
+
+/* =========================================================
+   Modal 标题
+   ========================================================= */
+
+.music-dialog-header {
+    display: flex;
+
+    align-items: center;
+
+    flex:
+        0 0 auto;
+
+    min-height: 42px;
+
+    padding-right: 54px;
+}
+
+.music-dialog-title-wrap {
+    display: flex;
+
+    align-items: center;
+
+    gap: 11px;
+
+    min-width: 0;
+}
+
+.music-dialog-title-content {
+    display: flex;
+
+    flex-direction: column;
+
+    min-width: 0;
+
+    gap: 1px;
+}
+
+.music-dialog-icon {
+    display: grid;
+
+    flex:
+        0 0 38px;
+
+    width: 38px;
+    height: 38px;
+
+    place-items: center;
+
+    border:
+        1px solid rgb(255 255 255 / 18%);
+
+    border-radius: 12px;
+
+    color:
+        var(--accent-color);
+
+    background:
+        rgb(255 255 255 / 7%);
+
+    font-size: 17px;
+
+    box-shadow:
+        inset 1px -1px 1px rgb(255 255 255 / 45%);
+}
+
+.music-count {
+    display: block;
+
+    color:
+        var(--text-secondary);
+
+    font-size: 10px;
+
+    line-height: 1.4;
+
+    text-shadow:
+        var(--text-shadow-secondary);
+
+    transition:
+        color 0.35s ease,
+        text-shadow 0.35s ease;
+}
+
+/* =========================================================
+   关闭按钮
+   ========================================================= */
+
+/*
+ * 注意：
+ *
+ * 全局存在：
+ *
+ * .liquid-glass > * {
+ *   position: relative;
+ * }
+ *
+ * 所以这里必须使用：
+ *
+ * .music-dialog > .music-dialog-close
+ *
+ * 并覆盖 position。
+ */
+
+.music-dialog>.music-dialog-close {
+    position: absolute !important;
+
+    top: 18px;
+    right: 18px;
+
+    z-index: 30;
+
+    display: flex !important;
+
+    align-items: center;
+    justify-content: center;
+
+    width: 34px;
+    height: 34px;
+
+    min-width: 34px;
+    min-height: 34px;
+
+    padding: 0 !important;
+
+    margin: 0;
+
+    border:
+        1px solid var(--glass-border);
+
+    border-radius: 50%;
+
+    color:
+        var(--text-secondary);
+
+    background:
+        rgb(255 255 255 / 4%);
+
+    box-sizing: border-box;
+
+    appearance: none;
+
+    cursor: pointer;
+
+    transform: none !important;
+
+    transition:
+        color 0.3s ease,
+        background 0.25s ease,
+        border-color 0.25s ease,
+        transform 0.2s ease;
+}
+
+/*
+ * 禁用公共按钮的斜向高光
+ */
+
+.music-dialog>.music-dialog-close::after {
+    display: none !important;
+}
+
+.music-dialog>.music-dialog-close:hover {
+    color:
+        var(--accent-color);
+
+    background:
+        var(--glass-background-hover);
+
+    border-color:
+        var(--glass-border-hover);
+
+    transform:
+        scale(1.06) !important;
+}
+
+.music-dialog>.music-dialog-close:active {
+    transform:
+        scale(0.94) !important;
+}
+
+/*
+ * SVG
+ */
+
+.music-dialog>.music-dialog-close .music-close-icon {
+    display: block;
+
+    width: 17px;
+    height: 17px;
+
+    flex:
+        0 0 17px;
+
+    margin: 0;
+
+    padding: 0;
+
+    pointer-events: none;
+}
+
+/* =========================================================
+   浅色模式关闭按钮
+   ========================================================= */
+
+html[data-theme='light'] .music-dialog>.music-dialog-close {
+    color:
+        rgb(45 40 52 / 78%);
+
+    background:
+        rgb(255 255 255 / 32%);
+
+    border-color:
+        rgb(255 255 255 / 65%);
+
+    box-shadow:
+        inset 1px -1px 1px rgb(255 255 255 / 80%),
+        0 3px 8px rgb(60 50 75 / 8%);
+}
+
+html[data-theme='light'] .music-dialog>.music-dialog-close:hover {
+    color:
+        var(--accent-color);
+
+    background:
+        rgb(255 255 255 / 45%);
+
+    border-color:
+        rgb(255 255 255 / 82%);
+}
+
+/* =========================================================
+   列表
+   ========================================================= */
+
+.music-list {
+    display: flex;
+
+    flex: 1;
+
+    flex-direction: column;
+
+    min-height: 0;
+
+    gap: 4px;
+
+    margin-top: 14px;
+
+    padding:
+        2px 3px 2px 0;
+
+    overflow-y: auto;
+
+    overscroll-behavior: contain;
+
+    scrollbar-width: thin;
+}
+
+.music-list::-webkit-scrollbar {
+    width: 5px;
+}
+
+.music-list::-webkit-scrollbar-track {
+    background:
+        transparent;
+}
+
+.music-list::-webkit-scrollbar-thumb {
+    border-radius: 999px;
+
+    background:
+        rgb(255 255 255 / 22%);
+}
+
+.music-list::-webkit-scrollbar-thumb:hover {
+    background:
+        rgb(255 255 255 / 36%);
+}
+
+/* =========================================================
+   浅色模式列表滚动条
+   ========================================================= */
+
+html[data-theme='light'] .music-list::-webkit-scrollbar-thumb {
+    background:
+        rgb(70 60 80 / 20%);
+}
+
+html[data-theme='light'] .music-list::-webkit-scrollbar-thumb:hover {
+    background:
+        rgb(70 60 80 / 30%);
+}
+
+/* =========================================================
+   单首歌曲
+   ========================================================= */
+
+.music-item {
+    display: flex;
+
+    align-items: center;
+
+    gap: 11px;
+
+    flex:
+        0 0 58px;
+
+    width: 100%;
+
+    min-width: 0;
+
+    padding:
+        7px 10px;
+
+    border:
+        1px solid transparent;
+
+    border-radius: 13px;
+
+    color:
+        var(--text-color);
+
+    background:
+        transparent;
+
+    text-align: left;
+
+    cursor: pointer;
+
+    transition:
+        color 0.3s ease,
+        background 0.22s ease,
+        border-color 0.22s ease,
+        transform 0.18s ease;
+}
+
+.music-item:hover {
+    background:
+        rgb(255 255 255 / 6%);
+
+    border-color:
+        rgb(255 255 255 / 10%);
+
+    transform:
+        translateX(2px);
+}
+
+.music-item.active {
+    background:
+        rgb(238 130 173 / 9%);
+
+    border-color:
+        rgb(238 130 173 / 19%);
+}
+
+.music-item.active:hover {
+    background:
+        rgb(238 130 173 / 13%);
+}
+
+/* =========================================================
+   浅色模式歌曲
+   ========================================================= */
+
+html[data-theme='light'] .music-item:hover {
+    background:
+        rgb(255 255 255 / 34%);
+
+    border-color:
+        rgb(255 255 255 / 42%);
+}
+
+html[data-theme='light'] .music-item.active {
+    background:
+        rgb(238 130 173 / 13%);
+
+    border-color:
+        rgb(217 102 153 / 23%);
+}
+
+html[data-theme='light'] .music-item.active:hover {
+    background:
+        rgb(238 130 173 / 18%);
+}
+
+/* =========================================================
+   序号
+   ========================================================= */
+
+.music-index {
+    display: inline-flex;
+
+    align-items: center;
+
+    justify-content: center;
+
+    flex:
+        0 0 25px;
+
+    width: 25px;
+
+    color:
+        var(--text-muted);
+
+    font-size: 9px;
+
+    font-variant-numeric:
+        tabular-nums;
+
+    text-align: center;
+
+    transition:
+        color 0.3s ease;
+}
+
+.music-item.active .music-index {
+    color:
+        var(--accent-color);
+}
+
+/* =========================================================
+   列表封面
+   ========================================================= */
+
+.music-item-cover {
+    display: grid;
+
+    flex:
+        0 0 42px;
+
+    width: 42px;
+    height: 42px;
+
+    overflow: hidden;
+
+    place-items: center;
+
+    border:
+        1px solid rgb(255 255 255 / 16%);
+
+    border-radius: 10px;
+
+    color:
+        var(--accent-color);
+
+    background:
+        rgb(255 255 255 / 7%);
+
+    font-size: 13px;
+}
+
+.music-item-cover img {
+    display: block;
+
+    width: 100%;
+    height: 100%;
+
+    object-fit: cover;
+}
+
+/* =========================================================
+   浅色模式封面
+   ========================================================= */
+
+html[data-theme='light'] .music-item-cover {
+    border-color:
+        rgb(255 255 255 / 48%);
+
+    background:
+        rgb(255 255 255 / 24%);
+}
+
+/* =========================================================
+   歌曲文字
+   ========================================================= */
+
+.music-item-info {
+    display: flex;
+
+    flex: 1;
+
+    flex-direction: column;
+
+    min-width: 0;
+
+    gap: 2px;
+}
+
+.music-item-info strong,
+.music-item-info span {
+    overflow: hidden;
+
+    text-overflow: ellipsis;
+
+    white-space: nowrap;
+}
+
+.music-item-info strong {
+    color:
+        var(--text-color);
+
+    font-size: 12px;
+
+    font-weight: 700;
+
+    line-height: 1.45;
+
+    text-shadow:
+        var(--text-shadow);
+
+    transition:
+        color 0.35s ease,
+        text-shadow 0.35s ease;
+}
+
+.music-item-info span {
+    color:
+        var(--text-secondary);
+
+    font-size: 10px;
+
+    line-height: 1.35;
+
+    text-shadow:
+        var(--text-shadow-secondary);
+
+    transition:
+        color 0.35s ease,
+        text-shadow 0.35s ease;
+}
+
+html[data-theme='light'] .music-item-info strong {
+    text-shadow:
+        0 1px 2px rgb(255 255 255 / 55%);
+}
+
+html[data-theme='light'] .music-item-info span {
+    text-shadow:
+        0 1px 2px rgb(255 255 255 / 35%);
+}
+
+.music-item.active .music-item-info strong {
+    color:
+        var(--accent-color);
+}
+
+/* =========================================================
+   正在播放
+   ========================================================= */
+
+.music-playing {
+    display: inline-flex;
+
+    align-items: center;
+
+    justify-content: center;
+
+    flex:
+        0 0 28px;
+
+    width: 28px;
+    height: 28px;
+
+    color:
+        var(--accent-color);
+
+    font-size: 15px;
+
+    animation:
+        music-playing-pulse 1.2s ease-in-out infinite;
+}
+
+/* =========================================================
+   Modal 动画
+   ========================================================= */
+
+.music-modal-enter-active,
+.music-modal-leave-active {
+    transition:
+        opacity 0.24s ease;
+}
+
+.music-modal-enter-from,
+.music-modal-leave-to {
+    opacity: 0;
+}
+
+.music-modal-enter-active .music-dialog,
+.music-modal-leave-active .music-dialog {
+    transition:
+        opacity 0.28s ease,
+        transform 0.28s ease;
+}
+
+.music-modal-enter-from .music-dialog,
+.music-modal-leave-to .music-dialog {
+    opacity: 0;
+
+    transform:
+        translateY(14px) scale(0.97);
+}
+
+/* =========================================================
+   动画
+   ========================================================= */
+
+@keyframes music-spin {
+    to {
+        transform:
+            rotate(360deg);
+    }
+}
+
+@keyframes music-playing-pulse {
+
+    0%,
+    100% {
+        opacity: 0.65;
+
+        transform:
+            scale(0.94);
+    }
+
+    50% {
+        opacity: 1;
+
+        transform:
+            scale(1.06);
+    }
+}
+
+/* =========================================================
+   平板
+   ========================================================= */
+
+@media (max-width: 600px) {
+    .music-card {
+        padding:
+            16px;
+    }
+
+    .music-cover {
+        flex-basis: 54px;
+
+        width: 54px;
+        height: 54px;
+    }
+
+    .music-bottom {
+        gap: 6px;
+    }
+
+    .music-main-controls {
+        gap: 4px;
+    }
+
+    .music-control {
+        flex-basis: 28px;
+
+        width: 28px;
+        height: 28px;
+    }
+
+    .music-play {
+        flex-basis: 36px;
+
+        width: 36px;
+        height: 36px;
+    }
+
+    .music-progress-area {
+        grid-template-columns:
+            30px minmax(45px, 1fr) 30px;
+
+        gap: 4px;
+    }
+
+    .music-volume-wrap {
+        flex-basis: 30px;
+
+        width: 30px;
+    }
+
+    .music-volume-button {
+        flex-basis: 30px;
+
+        width: 30px;
+        height: 30px;
+    }
+
+    .music-dialog {
+        width:
+            calc(100vw - 36px);
+
+        height:
+            min(540px,
+                calc(100vh - 36px));
+
+        max-height:
+            calc(100vh - 36px);
+
+        padding:
+            18px 16px 14px;
+    }
+
+    .music-dialog>.music-dialog-close {
+        top: 15px;
+        right: 15px;
+    }
+}
+
+/* =========================================================
+   手机
+   ========================================================= */
+
+@media (max-width: 430px) {
+    .music-top {
+        gap: 11px;
+    }
+
+    .music-cover {
+        flex-basis: 50px;
+
+        width: 50px;
+        height: 50px;
+    }
+
+    .music-title {
+        font-size: 13px;
+    }
+
+    .music-artist {
+        font-size: 10px;
+    }
+
+    .music-lyric {
+        font-size: 10px;
+    }
+
+    .music-main-controls {
+        gap: 1px;
+    }
+
+    .music-progress-area {
+        grid-template-columns:
+            28px minmax(35px, 1fr) 28px;
+    }
+
+    .music-time {
+        font-size: 8px;
+    }
+
+    .music-volume-icon-svg {
+        width: 18px;
+        height: 18px;
+
+        flex-basis: 18px;
+    }
+
+    .music-dialog-icon {
+        flex-basis: 34px;
+
+        width: 34px;
+        height: 34px;
+
+        font-size: 15px;
+    }
+
+    .music-dialog>.music-dialog-close {
+        top: 14px;
+        right: 14px;
+
+        width: 32px;
+        height: 32px;
+
+        min-width: 32px;
+        min-height: 32px;
+    }
+
+    .music-dialog>.music-dialog-close .music-close-icon {
+        width: 16px;
+        height: 16px;
+
+        flex-basis: 16px;
+    }
+
+    .music-item {
+        flex-basis: 54px;
+
+        gap: 8px;
+
+        padding:
+            6px 8px;
+    }
+
+    .music-item-cover {
+        flex-basis: 38px;
+
+        width: 38px;
+        height: 38px;
+    }
+
+    .music-item-info strong {
+        font-size: 11px;
+    }
+
+    .music-item-info span {
+        font-size: 9px;
+    }
+}
+
+/* =========================================================
+   减少动态
+   ========================================================= */
+
+@media (prefers-reduced-motion: reduce) {
+
+    .music-cover.spinning,
+    .music-playing {
+        animation: none;
+    }
+
+    .music-control,
+    .music-volume-button,
+    .music-dialog-close,
+    .music-lyric,
+    .music-item {
+        transition: none;
+    }
+
+    .music-modal-enter-active,
+    .music-modal-leave-active,
+    .music-modal-enter-active .music-dialog,
+    .music-modal-leave-active .music-dialog,
+    .lyric-fade-enter-active,
+    .lyric-fade-leave-active,
+    .volume-expand-enter-active,
+    .volume-expand-leave-active {
+        transition: none;
+    }
+}

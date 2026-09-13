@@ -1,0 +1,145 @@
+:root {
+  /* =================================
+     默认：暗色
+     ================================= */
+
+  --page-background: #17131f;
+
+  /* =================================
+     文字
+     ================================= */
+
+  --text-color: #ffffff;
+
+  --text-secondary:
+    rgb(255 255 255 / 76%);
+
+  --text-muted:
+    rgb(255 255 255 / 58%);
+
+  --accent-color: #ee82ad;
+
+  /* =================================
+     文字阴影
+     ================================= */
+
+  --text-shadow:
+    0 2px 5px rgb(0 0 0 / 38%);
+
+  --text-shadow-secondary:
+    0 2px 4px rgb(0 0 0 / 28%);
+
+  /* =================================
+     液态玻璃
+     ================================= */
+
+  --glass-background:
+    rgb(255 255 255 / 4%);
+
+  --glass-background-hover:
+    rgb(255 255 255 / 7%);
+
+  --glass-border:
+    rgb(255 255 255 / 16%);
+
+  --glass-border-hover:
+    rgb(255 255 255 / 30%);
+
+  --glass-highlight:
+    rgb(255 255 255 / 72%);
+
+  --glass-highlight-soft:
+    rgb(255 255 255 / 35%);
+
+  --glass-shadow:
+    rgb(0 0 0 / 18%);
+
+  --glass-blur:
+    2px;
+
+  --glass-saturation:
+    110%;
+
+  --glass-radius:
+    24px;
+
+  --page-radius:
+    24px;
+
+  --shadow:
+    0 4px 8px rgb(0 0 0 / 18%),
+    0 2px 4px rgb(0 0 0 / 10%);
+}
+
+/* =================================
+   浅色主题
+   ================================= */
+
+html[data-theme='light'] {
+  --page-background: #f3f3f3;
+
+  /* =================================
+     文字
+     ================================= */
+
+  --text-color: #222222;
+
+  --text-secondary:
+    rgb(34 34 34 / 80%);
+
+  --text-muted:
+    rgb(34 34 34 / 60%);
+
+  --accent-color: #d96699;
+
+  /* =================================
+     浅色文字阴影
+     ================================= */
+
+  --text-shadow:
+    0 1px 2px rgb(255 255 255 / 65%);
+
+  --text-shadow-secondary:
+    0 1px 2px rgb(255 255 255 / 52%);
+
+  /* =================================
+     浅色玻璃
+     ================================= */
+
+  --glass-background:
+    rgb(255 255 255 / 5%);
+
+  --glass-background-hover:
+    rgb(255 255 255 / 9%);
+
+  --glass-border:
+    rgb(255 255 255 / 36%);
+
+  --glass-border-hover:
+    rgb(255 255 255 / 55%);
+
+  --glass-highlight:
+    rgb(255 255 255 / 62%);
+
+  --glass-highlight-soft:
+    rgb(255 255 255 / 30%);
+
+  --glass-shadow:
+    rgb(65 49 90 / 10%);
+
+  --glass-blur:
+    2px;
+
+  --glass-saturation:
+    110%;
+
+  --glass-radius:
+    24px;
+
+  --page-radius:
+    24px;
+
+  --shadow:
+    0 4px 8px rgb(65 49 90 / 9%),
+    0 2px 4px rgb(65 49 90 / 5%);
+}
