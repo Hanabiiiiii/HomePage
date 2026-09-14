@@ -221,7 +221,7 @@ export const siteConfig = {
       title:
         'QQ',
       url:
-        'tencent://Message/?Uin=2291644503&websiteName=qzone.qq.com&Menu=yes',
+        'tencent://Message/?Uin=2131369826&websiteName=qzone.qq.com&Menu=yes',
       icon:
         '/icon/qq.svg',
     },
