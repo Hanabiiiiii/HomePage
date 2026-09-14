@@ -19,7 +19,7 @@ import { siteConfig } from '@/config/site'
 
       <main class="home-container">
         <!-- =================================
-             Left
+             Left Column
              ================================= -->
 
         <section class="home-left">
@@ -27,11 +27,7 @@ import { siteConfig } from '@/config/site'
 
           <HitokotoCard />
 
-          <!--
-            将 SocialLinks 推到左侧底部。
-          -->
-
-          <div class="home-left-spacer"></div>
+          <div class="home-left-flex"></div>
 
           <div class="home-social">
             <SocialLinks />
@@ -39,11 +35,13 @@ import { siteConfig } from '@/config/site'
         </section>
 
         <!-- =================================
-             Right
+             Right Column
              ================================= -->
 
         <section class="home-right">
           <MusicPlayer />
+
+          <div class="home-right-flex"></div>
 
           <div class="home-site-links">
             <SiteLinks />
@@ -66,12 +64,7 @@ import { siteConfig } from '@/config/site'
           ·
         </span>
 
-        <a
-          class="footer-record"
-          href="https://icp.gov.moe/?keyword=20250196"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
+        <a class="footer-record" href="https://icp.gov.moe/?keyword=20250196" target="_blank" rel="noopener noreferrer">
           萌ICP备20250196号
         </a>
       </footer>
@@ -119,9 +112,9 @@ import { siteConfig } from '@/config/site'
     0 auto;
 
   /*
-   * 桌面端整体稍微向下。
+   * 整体稍微向下移动，
+   * 避免桌面端视觉上偏高。
    */
-
   transform:
     translateY(45px);
 }
@@ -135,10 +128,9 @@ import { siteConfig } from '@/config/site'
     grid;
 
   grid-template-columns:
-    minmax(260px, 0.85fr)
-    minmax(0, 1.35fr);
+    minmax(260px, 0.85fr) minmax(0, 1.35fr);
 
-  column-gap:
+  gap:
     28px;
 
   width:
@@ -149,7 +141,7 @@ import { siteConfig } from '@/config/site'
 }
 
 /* =================================
-   Left
+   Left Column
    ================================= */
 
 .home-left {
@@ -170,12 +162,10 @@ import { siteConfig } from '@/config/site'
 }
 
 /*
- * 自动占据左侧剩余高度。
- *
- * SocialLinks 会被推到左列底部。
+ * 将 SocialLinks 推到左列底部。
  */
 
-.home-left-spacer {
+.home-left-flex {
   flex:
     1 1 auto;
 
@@ -195,7 +185,7 @@ import { siteConfig } from '@/config/site'
 }
 
 /* =================================
-   Right
+   Right Column
    ================================= */
 
 .home-right {
@@ -211,12 +201,25 @@ import { siteConfig } from '@/config/site'
   min-height:
     0;
 
-  /*
-   * MusicPlayer 和 SiteLinks 紧凑排列。
-   */
-
   gap:
-    10px;
+    20px;
+}
+
+/*
+ * 将 SiteLinks 推到右列底部。
+ *
+ * SiteLinks 自身包含：
+ * 4 个链接
+ * +
+ * 分页按钮
+ */
+
+.home-right-flex {
+  flex:
+    1 1 auto;
+
+  min-height:
+    0;
 }
 
 .home-site-links {
@@ -292,7 +295,7 @@ import { siteConfig } from '@/config/site'
 }
 
 /* =================================
-   ICP
+   ICP Link
    ================================= */
 
 .footer-record {
@@ -338,16 +341,10 @@ import { siteConfig } from '@/config/site'
 
   .home-container {
     grid-template-columns:
-      minmax(220px, 0.8fr)
-      minmax(0, 1.2fr);
+      minmax(220px, 0.8fr) minmax(0, 1.2fr);
 
-    column-gap:
-      20px;
-  }
-
-  .home-right {
     gap:
-      10px;
+      20px;
   }
 }
 
@@ -367,6 +364,10 @@ import { siteConfig } from '@/config/site'
       24px 16px 18px;
   }
 
+  /*
+   * 手机端取消桌面端整体下移。
+   */
+
   .home-wrapper {
     width:
       100%;
@@ -377,16 +378,12 @@ import { siteConfig } from '@/config/site'
     margin:
       0 auto;
 
-    /*
-     * 手机端取消整体下移。
-     */
-
     transform:
       none;
   }
 
   /*
-   * 变成普通纵向布局。
+   * Mobile 使用普通纵向结构。
    */
 
   .home-container {
@@ -413,9 +410,6 @@ import { siteConfig } from '@/config/site'
     width:
       100%;
 
-    min-height:
-      auto;
-
     gap:
       16px;
   }
@@ -430,26 +424,18 @@ import { siteConfig } from '@/config/site'
     width:
       100%;
 
-    min-height:
-      auto;
-
     gap:
-      10px;
+      16px;
   }
 
   /*
-   * 手机上不需要弹性占位。
+   * 手机端取消弹性占位。
    */
 
-  .home-left-spacer {
+  .home-left-flex,
+  .home-right-flex {
     display:
       none;
-  }
-
-  .home-social,
-  .home-site-links {
-    width:
-      100%;
   }
 
   /*
@@ -460,6 +446,7 @@ import { siteConfig } from '@/config/site'
    * MusicPlayer
    * SiteLinks
    * SocialLinks
+   * Footer
    */
 
   .home-right {
@@ -472,9 +459,9 @@ import { siteConfig } from '@/config/site'
       3;
   }
 
-  /*
-   * Footer
-   */
+  /* =================================
+     Footer
+     ================================= */
 
   .home-footer {
     margin:
@@ -493,6 +480,7 @@ import { siteConfig } from '@/config/site'
    ================================= */
 
 @media (prefers-reduced-motion: reduce) {
+
   .home-footer,
   .footer-record {
     transition:

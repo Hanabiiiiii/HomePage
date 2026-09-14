@@ -20,19 +20,16 @@ const imageFailed = ref(false)
 
 const theme = ref<Theme>('dark')
 
-let mediaQuery:
-  MediaQueryList | null = null
+let mediaQuery: MediaQueryList | null = null
 
-let themeObserver:
-  MutationObserver | null = null
+let themeObserver: MutationObserver | null = null
 
 /* =================================
    当前主题
    ================================= */
 
 function getCurrentTheme(): Theme {
-  return document.documentElement
-    .dataset.theme === 'light'
+  return document.documentElement.dataset.theme === 'light'
     ? 'light'
     : 'dark'
 }
@@ -42,8 +39,7 @@ function getCurrentTheme(): Theme {
    ================================= */
 
 function updateTheme() {
-  theme.value =
-    getCurrentTheme()
+  theme.value = getCurrentTheme()
 }
 
 /* =================================
@@ -71,17 +67,7 @@ function handleImageLoad() {
 
   imageFailed.value = false
 
-  appStore.setBackgroundReady(
-    true,
-  )
-
-  /*
-   * 保留原有状态同步。
-   *
-   * LoadingScreen 当前使用自己的
-   * 首屏完成逻辑，不会因为这里
-   * 调用 finishLoading() 而提前消失。
-   */
+  appStore.setBackgroundReady(true)
 
   appStore.finishLoading()
 }
@@ -91,13 +77,7 @@ function handleImageError() {
 
   imageFailed.value = true
 
-  appStore.setBackgroundReady(
-    true,
-  )
-
-  /*
-   * 背景失败也不能阻塞页面。
-   */
+  appStore.setBackgroundReady(true)
 
   appStore.finishLoading()
 }
@@ -113,10 +93,9 @@ onMounted(() => {
 
   updateTheme()
 
-  themeObserver =
-    new MutationObserver(() => {
-      updateTheme()
-    })
+  themeObserver = new MutationObserver(() => {
+    updateTheme()
+  })
 
   themeObserver.observe(
     document.documentElement,
@@ -139,9 +118,7 @@ onMounted(() => {
 
   updateDeviceType()
 
-  if (
-    mediaQuery.addEventListener
-  ) {
+  if (mediaQuery.addEventListener) {
     mediaQuery.addEventListener(
       'change',
       handleMediaChange,
@@ -186,7 +163,6 @@ onUnmounted(() => {
 <template>
   <div class="background-layer" :class="[
     `theme-${theme}`,
-
     {
       'is-loaded':
         imageLoaded,
@@ -245,14 +221,7 @@ onUnmounted(() => {
 
   inset: 0;
 
-  /*
-   * 不再使用负 z-index。
-   *
-   * 背景作为 #app 下独立层，
-   * 直接位于内容层下面。
-   */
-
-  z-index: 0;
+  z-index: -2;
 
   width: 100%;
 
@@ -287,13 +256,6 @@ onUnmounted(() => {
     center center;
 
   opacity: 0;
-
-  /*
-   * 图片本身不做模糊。
-   *
-   * 模糊由前景卡片的
-   * backdrop-filter 完成。
-   */
 
   filter: none;
 
