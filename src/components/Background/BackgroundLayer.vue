@@ -20,16 +20,19 @@ const imageFailed = ref(false)
 
 const theme = ref<Theme>('dark')
 
-let mediaQuery: MediaQueryList | null = null
+let mediaQuery:
+  MediaQueryList | null = null
 
-let themeObserver: MutationObserver | null = null
+let themeObserver:
+  MutationObserver | null = null
 
 /* =================================
-   读取当前主题
+   当前主题
    ================================= */
 
 function getCurrentTheme(): Theme {
-  return document.documentElement.dataset.theme === 'light'
+  return document.documentElement
+    .dataset.theme === 'light'
     ? 'light'
     : 'dark'
 }
@@ -39,7 +42,8 @@ function getCurrentTheme(): Theme {
    ================================= */
 
 function updateTheme() {
-  theme.value = getCurrentTheme()
+  theme.value =
+    getCurrentTheme()
 }
 
 /* =================================
@@ -54,7 +58,8 @@ function updateDeviceType() {
 function handleMediaChange(
   event: MediaQueryListEvent,
 ) {
-  isMobile.value = event.matches
+  isMobile.value =
+    event.matches
 }
 
 /* =================================
@@ -66,7 +71,17 @@ function handleImageLoad() {
 
   imageFailed.value = false
 
-  appStore.setBackgroundReady(true)
+  appStore.setBackgroundReady(
+    true,
+  )
+
+  /*
+   * 保留原有状态同步。
+   *
+   * LoadingScreen 当前使用自己的
+   * 首屏完成逻辑，不会因为这里
+   * 调用 finishLoading() 而提前消失。
+   */
 
   appStore.finishLoading()
 }
@@ -76,7 +91,13 @@ function handleImageError() {
 
   imageFailed.value = true
 
-  appStore.setBackgroundReady(true)
+  appStore.setBackgroundReady(
+    true,
+  )
+
+  /*
+   * 背景失败也不能阻塞页面。
+   */
 
   appStore.finishLoading()
 }
@@ -86,7 +107,9 @@ function handleImageError() {
    ================================= */
 
 onMounted(() => {
-  /* ---------- 主题 ---------- */
+  /* ---------------------------------
+     Theme
+     --------------------------------- */
 
   updateTheme()
 
@@ -99,11 +122,15 @@ onMounted(() => {
     document.documentElement,
     {
       attributes: true,
-      attributeFilter: ['data-theme'],
+      attributeFilter: [
+        'data-theme',
+      ],
     },
   )
 
-  /* ---------- Mobile ---------- */
+  /* ---------------------------------
+     Mobile
+     --------------------------------- */
 
   mediaQuery =
     window.matchMedia(
@@ -112,7 +139,9 @@ onMounted(() => {
 
   updateDeviceType()
 
-  if (mediaQuery.addEventListener) {
+  if (
+    mediaQuery.addEventListener
+  ) {
     mediaQuery.addEventListener(
       'change',
       handleMediaChange,
@@ -131,11 +160,14 @@ onMounted(() => {
 onUnmounted(() => {
   if (themeObserver) {
     themeObserver.disconnect()
+
     themeObserver = null
   }
 
   if (mediaQuery) {
-    if (mediaQuery.removeEventListener) {
+    if (
+      mediaQuery.removeEventListener
+    ) {
       mediaQuery.removeEventListener(
         'change',
         handleMediaChange,
@@ -156,8 +188,11 @@ onUnmounted(() => {
     `theme-${theme}`,
 
     {
-      'is-loaded': imageLoaded,
-      'is-failed': imageFailed,
+      'is-loaded':
+        imageLoaded,
+
+      'is-failed':
+        imageFailed,
     },
   ]" aria-hidden="true">
     <!-- =================================
@@ -165,32 +200,38 @@ onUnmounted(() => {
          ================================= -->
 
     <picture v-if="!imageFailed">
-
       <source v-if="isMobile" :srcset="siteConfig.background.mobile
         " media="(max-width: 760px)" />
 
       <img class="background-image" :src="siteConfig.background.desktop
         " alt="" decoding="async" @load="handleImageLoad" @error="handleImageError" />
-
     </picture>
 
     <!-- =================================
          Dark Overlay
          ================================= -->
 
-    <div class="background-tint background-tint-dark" />
+    <div class="
+        background-tint
+        background-tint-dark
+      " />
 
     <!-- =================================
          Light Overlay
          ================================= -->
 
-    <div class="background-tint background-tint-light" />
+    <div class="
+        background-tint
+        background-tint-light
+      " />
 
     <!-- =================================
          Vignette
          ================================= -->
 
-    <div class="background-vignette" />
+    <div class="
+        background-vignette
+      " />
   </div>
 </template>
 
@@ -204,9 +245,17 @@ onUnmounted(() => {
 
   inset: 0;
 
-  z-index: -2;
+  /*
+   * 不再使用负 z-index。
+   *
+   * 背景作为 #app 下独立层，
+   * 直接位于内容层下面。
+   */
+
+  z-index: 0;
 
   width: 100%;
+
   height: 100%;
 
   overflow: hidden;
@@ -229,6 +278,7 @@ onUnmounted(() => {
   display: block;
 
   width: 100%;
+
   height: 100%;
 
   object-fit: cover;
@@ -239,8 +289,12 @@ onUnmounted(() => {
   opacity: 0;
 
   /*
-   * 图片本身不加任何滤镜。
+   * 图片本身不做模糊。
+   *
+   * 模糊由前景卡片的
+   * backdrop-filter 完成。
    */
+
   filter: none;
 
   transform: none;
@@ -268,13 +322,6 @@ onUnmounted(() => {
 
   opacity: 0;
 
-  /*
-   * 关键：
-   * 只过渡 opacity。
-   *
-   * 不过渡 background，
-   * 避免复杂 gradient 闪烁。
-   */
   transition:
     opacity 0.45s ease;
 }
