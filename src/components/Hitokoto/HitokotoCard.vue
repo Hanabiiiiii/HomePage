@@ -50,9 +50,7 @@ const currentHitokoto = ref<CachedHitokoto>({
 })
 
 const isLoading = ref(false)
-
 const isChanging = ref(false)
-
 const isOffline = ref(false)
 
 /* =================================
@@ -60,9 +58,7 @@ const isOffline = ref(false)
    ================================= */
 
 let refreshInterval: number | undefined
-
 let changeTimer: number | undefined
-
 let requestController: AbortController | null = null
 
 let isUnmounted = false
@@ -81,17 +77,14 @@ function getCache(): CachedHitokoto[] {
             return []
         }
 
-        const parsedCache: unknown =
-            JSON.parse(rawCache)
+        const parsedCache: unknown = JSON.parse(rawCache)
 
         if (!Array.isArray(parsedCache)) {
             return []
         }
 
         return parsedCache.filter(
-            (
-                item,
-            ): item is CachedHitokoto => {
+            (item): item is CachedHitokoto => {
                 return (
                     typeof item === 'object' &&
                     item !== null &&
@@ -110,24 +103,18 @@ function getCache(): CachedHitokoto[] {
    保存缓存
    ================================= */
 
-function saveCache(
-    item: CachedHitokoto,
-) {
+function saveCache(item: CachedHitokoto) {
     try {
         const cache = getCache()
 
         const newItem: CachedHitokoto = {
             ...item,
-            createdAt:
-                item.createdAt ?? Date.now(),
+            createdAt: item.createdAt ?? Date.now(),
         }
 
-        const filteredCache =
-            cache.filter(
-                cachedItem =>
-                    cachedItem.text !==
-                    newItem.text,
-            )
+        const filteredCache = cache.filter(
+            cachedItem => cachedItem.text !== newItem.text,
+        )
 
         const nextCache = [
             newItem,
@@ -142,9 +129,7 @@ function saveCache(
             JSON.stringify(nextCache),
         )
     } catch {
-        /*
-         * localStorage 不可用时静默降级
-         */
+        // localStorage 不可用时静默降级
     }
 }
 
@@ -152,8 +137,7 @@ function saveCache(
    随机缓存
    ================================= */
 
-function getRandomCachedHitokoto():
-    CachedHitokoto | null {
+function getRandomCachedHitokoto(): CachedHitokoto | null {
     const cache = getCache()
 
     if (cache.length === 0) {
@@ -173,8 +157,7 @@ function getRandomCachedHitokoto():
 
 function getRandomFallback(): CachedHitokoto {
     const randomIndex = Math.floor(
-        Math.random() *
-        fallbackSentences.length,
+        Math.random() * fallbackSentences.length,
     )
 
     return fallbackSentences[randomIndex]
@@ -193,7 +176,6 @@ function setCurrentHitokoto(
     }
 
     currentHitokoto.value = item
-
     isOffline.value = offline
 }
 
@@ -220,13 +202,9 @@ function animateChange(
             return
         }
 
-        setCurrentHitokoto(
-            item,
-            offline,
-        )
+        setCurrentHitokoto(item, offline)
 
         isChanging.value = false
-
         changeTimer = undefined
     }, 180)
 }
@@ -236,10 +214,7 @@ function animateChange(
    ================================= */
 
 async function fetchHitokoto() {
-    if (
-        isLoading.value ||
-        isUnmounted
-    ) {
+    if (isLoading.value || isUnmounted) {
         return
     }
 
@@ -247,29 +222,23 @@ async function fetchHitokoto() {
 
     requestController?.abort()
 
-    const controller =
-        new AbortController()
+    const controller = new AbortController()
 
     requestController = controller
 
-    const timeoutTimer =
-        window.setTimeout(() => {
-            controller.abort()
-        }, 8000)
+    const timeoutTimer = window.setTimeout(() => {
+        controller.abort()
+    }, 8000)
 
     try {
         const response = await fetch(
             siteConfig.hitokoto.api,
             {
                 method: 'GET',
-
                 headers: {
-                    Accept:
-                        'application/json',
+                    Accept: 'application/json',
                 },
-
-                signal:
-                    controller.signal,
+                signal: controller.signal,
             },
         )
 
@@ -279,12 +248,6 @@ async function fetchHitokoto() {
             )
         }
 
-        /*
-         * 这里是之前出错的地方。
-         *
-         * 必须保持成一个完整的 TypeScript
-         * 类型断言。
-         */
         const data =
             (await response.json()) as HitokotoResponse
 
@@ -302,28 +265,20 @@ async function fetchHitokoto() {
             data.from,
         ]
             .filter(
-                (
-                    item,
-                ): item is string =>
+                (item): item is string =>
                     Boolean(item),
             )
             .map(item => item.trim())
 
         const item: CachedHitokoto = {
             text: data.hitokoto.trim(),
-
-            source:
-                sourceParts.join(' · '),
-
+            source: sourceParts.join(' · '),
             createdAt: Date.now(),
         }
 
         saveCache(item)
 
-        animateChange(
-            item,
-            false,
-        )
+        animateChange(item, false)
     } catch {
         if (isUnmounted) {
             return
@@ -333,10 +288,7 @@ async function fetchHitokoto() {
             getRandomCachedHitokoto()
 
         if (cachedItem) {
-            animateChange(
-                cachedItem,
-                true,
-            )
+            animateChange(cachedItem, true)
         } else {
             animateChange(
                 getRandomFallback(),
@@ -344,14 +296,9 @@ async function fetchHitokoto() {
             )
         }
     } finally {
-        window.clearTimeout(
-            timeoutTimer,
-        )
+        window.clearTimeout(timeoutTimer)
 
-        if (
-            requestController ===
-            controller
-        ) {
+        if (requestController === controller) {
             requestController = null
         }
 
@@ -380,29 +327,20 @@ function handleRefresh() {
 onMounted(() => {
     void fetchHitokoto()
 
-    refreshInterval =
-        window.setInterval(() => {
-            void fetchHitokoto()
-        }, 60 * 1000)
+    refreshInterval = window.setInterval(() => {
+        void fetchHitokoto()
+    }, 60 * 1000)
 })
 
 onUnmounted(() => {
     isUnmounted = true
 
-    if (
-        refreshInterval !== undefined
-    ) {
-        window.clearInterval(
-            refreshInterval,
-        )
+    if (refreshInterval !== undefined) {
+        window.clearInterval(refreshInterval)
     }
 
-    if (
-        changeTimer !== undefined
-    ) {
-        window.clearTimeout(
-            changeTimer,
-        )
+    if (changeTimer !== undefined) {
+        window.clearTimeout(changeTimer)
     }
 
     requestController?.abort()
@@ -411,10 +349,6 @@ onUnmounted(() => {
 
 <template>
     <section class="hitokoto-card liquid-glass">
-        <!-- =================================
-         Header
-         ================================= -->
-
         <div class="hitokoto-header">
             <span class="hitokoto-label">
                 {{
@@ -434,26 +368,16 @@ onUnmounted(() => {
             </button>
         </div>
 
-        <!-- =================================
-         Content
-         ================================= -->
-
         <div class="hitokoto-content" :class="{
             changing: isChanging,
         }">
             <p class="hitokoto-text">
-                {{
-                    currentHitokoto.text
-                }}
+                {{ currentHitokoto.text }}
             </p>
 
-            <p v-if="
-                currentHitokoto.source
-            " class="hitokoto-source">
+            <p v-if="currentHitokoto.source" class="hitokoto-source">
                 ——
-                {{
-                    currentHitokoto.source
-                }}
+                {{ currentHitokoto.source }}
             </p>
         </div>
     </section>
@@ -467,13 +391,20 @@ onUnmounted(() => {
 .hitokoto-card {
     width: 100%;
 
-    padding:
-        20px 22px;
+    /*
+   * 固定卡片高度
+   */
+    height: 154px;
+    min-height: 154px;
+    max-height: 154px;
 
-    color:
-        var(--text-color);
+    padding: 20px 22px;
+
+    color: var(--text-color);
 
     box-sizing: border-box;
+
+    overflow: hidden;
 }
 
 /* =================================
@@ -484,12 +415,14 @@ onUnmounted(() => {
     display: flex;
 
     align-items: center;
-
     justify-content: space-between;
 
     gap: 12px;
 
-    margin-bottom: 14px;
+    height: 34px;
+    flex: 0 0 34px;
+
+    margin-bottom: 10px;
 }
 
 /* =================================
@@ -497,18 +430,15 @@ onUnmounted(() => {
    ================================= */
 
 .hitokoto-label {
-    color:
-        var(--text-secondary);
+    color: var(--text-secondary);
 
     font-size: 13px;
 
-    letter-spacing:
-        0.08em;
+    letter-spacing: 0.08em;
 
     line-height: 1.5;
 
-    text-shadow:
-        var(--text-shadow-secondary);
+    text-shadow: var(--text-shadow-secondary);
 
     transition:
         color 0.35s ease,
@@ -520,8 +450,12 @@ onUnmounted(() => {
    ================================= */
 
 .hitokoto-refresh {
-    flex:
-        0 0 34px;
+    display: inline-flex;
+
+    align-items: center;
+    justify-content: center;
+
+    flex: 0 0 34px;
 
     width: 34px;
     height: 34px;
@@ -530,25 +464,22 @@ onUnmounted(() => {
 
     border-radius: 50%;
 
-    color:
-        var(--text-color);
+    color: var(--text-color);
 
     cursor: pointer;
 
     transition:
-        color 0.35s ease;
+        color 0.35s ease,
+        transform 0.25s ease;
 }
 
 .hitokoto-refresh:hover:not(:disabled) {
-    transform:
-        rotate(15deg);
+    transform: rotate(15deg);
 }
 
 .hitokoto-refresh:disabled {
     cursor: wait;
-
-    opacity:
-        0.65;
+    opacity: 0.65;
 }
 
 .hitokoto-refresh span {
@@ -564,6 +495,20 @@ onUnmounted(() => {
    ================================= */
 
 .hitokoto-content {
+    /*
+   * 154px 卡片：
+   *
+   * 上下 padding = 40px
+   * Header = 34px
+   * Header margin = 10px
+   * 剩余 = 70px
+   *
+   * 所以这里严格控制在 70px
+   */
+    height: 70px;
+
+    overflow: hidden;
+
     transition:
         opacity 0.18s ease,
         transform 0.18s ease;
@@ -571,9 +516,7 @@ onUnmounted(() => {
 
 .hitokoto-content.changing {
     opacity: 0;
-
-    transform:
-        translateY(5px);
+    transform: translateY(5px);
 }
 
 /* =================================
@@ -581,22 +524,34 @@ onUnmounted(() => {
    ================================= */
 
 .hitokoto-text {
+    display: -webkit-box;
+
     margin: 0;
 
-    color:
-        var(--text-color);
+    overflow: hidden;
+
+    color: var(--text-color);
 
     font-size: 15px;
 
+    /*
+   * 原来的 1.9 太高，
+   * 两行会把来源挤出卡片。
+   *
+   * 现在改成 1.6：
+   * 15 × 1.6 × 2 = 48px
+   */
+    line-height: 1.6;
+
     font-weight: 500;
 
-    line-height: 1.9;
+    word-break: break-word;
 
-    word-break:
-        break-word;
+    text-shadow: var(--text-shadow);
 
-    text-shadow:
-        var(--text-shadow);
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+    line-clamp: 2;
 
     transition:
         color 0.35s ease,
@@ -608,20 +563,25 @@ onUnmounted(() => {
    ================================= */
 
 .hitokoto-source {
-    margin:
-        10px 0 0;
+    display: block;
 
-    color:
-        var(--text-secondary);
+    overflow: hidden;
+
+    margin: 4px 0 0;
+
+    color: var(--text-secondary);
 
     font-size: 12px;
 
-    line-height: 1.6;
+    line-height: 1.5;
 
     text-align: right;
 
-    text-shadow:
-        var(--text-shadow-secondary);
+    text-overflow: ellipsis;
+
+    white-space: nowrap;
+
+    text-shadow: var(--text-shadow-secondary);
 
     transition:
         color 0.35s ease,
@@ -639,13 +599,11 @@ onUnmounted(() => {
 
 @keyframes hitokoto-rotate {
     from {
-        transform:
-            rotate(0deg);
+        transform: rotate(0deg);
     }
 
     to {
-        transform:
-            rotate(360deg);
+        transform: rotate(360deg);
     }
 }
 
@@ -653,10 +611,64 @@ onUnmounted(() => {
    Mobile
    ================================= */
 
+@media (max-width: 760px) {
+    .hitokoto-card {
+        height: 140px;
+        min-height: 140px;
+        max-height: 140px;
+
+        padding: 18px;
+    }
+
+    .hitokoto-header {
+        height: 32px;
+        flex: 0 0 32px;
+
+        margin-bottom: 8px;
+    }
+
+    .hitokoto-content {
+        height: 64px;
+    }
+
+    .hitokoto-text {
+        font-size: 14px;
+
+        /*
+     * 14 × 1.55 × 2 ≈ 43.4px
+     */
+        line-height: 1.55;
+    }
+
+    .hitokoto-source {
+        margin-top: 3px;
+
+        font-size: 11px;
+
+        line-height: 1.4;
+    }
+}
+
+/* =================================
+   超小屏幕
+   ================================= */
+
 @media (max-width: 420px) {
     .hitokoto-card {
-        padding:
-            18px;
+        height: 140px;
+        min-height: 140px;
+        max-height: 140px;
+
+        padding: 18px;
+    }
+
+    .hitokoto-text {
+        font-size: 14px;
+        line-height: 1.55;
+    }
+
+    .hitokoto-source {
+        font-size: 11px;
     }
 }
 

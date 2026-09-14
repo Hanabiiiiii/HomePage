@@ -1,3 +1,5 @@
+<!-- src/components/Profile/ProfileCard.vue -->
+
 <script setup lang="ts">
 import {
   computed,
@@ -7,6 +9,7 @@ import {
 } from 'vue'
 
 import { siteConfig } from '@/config/site'
+import { useWeather } from '@/utils/Weather/weather'
 
 const now = ref(new Date())
 
@@ -14,6 +17,15 @@ const avatarLoaded = ref(true)
 
 let clockTimer:
   number | undefined
+
+const {
+  loading: weatherLoading,
+  weather,
+  weatherIcon,
+  displayCity,
+  loadWeather,
+  startAutoRefresh,
+} = useWeather()
 
 /* =================================
    Time
@@ -44,23 +56,32 @@ const formattedDate = computed(() => {
 })
 
 /* =================================
+   Location
+   ================================= */
+
+const profileLocation = computed(() => {
+  return (
+    displayCity.value ||
+    siteConfig.profile.location
+  )
+})
+
+/* =================================
    Avatar Fallback
    ================================= */
 
-const avatarFallback =
-  computed(() => {
-    const name =
-      siteConfig.profile.name
-        .trim()
+const avatarFallback = computed(() => {
+  const name =
+    siteConfig.profile.name.trim()
 
-    if (!name) {
-      return '?'
-    }
+  if (!name) {
+    return '?'
+  }
 
-    return name
-      .charAt(0)
-      .toUpperCase()
-  })
+  return name
+    .charAt(0)
+    .toUpperCase()
+})
 
 /* =================================
    Avatar Error
@@ -79,6 +100,17 @@ onMounted(() => {
     window.setInterval(() => {
       now.value = new Date()
     }, 1000)
+
+  /*
+   * WeatherCard 删除以后，
+   * ProfileCard 负责第一次加载天气。
+   */
+  void loadWeather()
+
+  /*
+   * 每 10 分钟自动刷新。
+   */
+  startAutoRefresh()
 })
 
 onUnmounted(() => {
@@ -106,13 +138,10 @@ onUnmounted(() => {
           {{ avatarFallback }}
         </div>
 
-        <img v-else class="avatar" :src="siteConfig.avatar" :alt="`${siteConfig.profile.name} 的头像`
-          " decoding="async" @error="
-            handleAvatarError
-          " />
+        <img v-else class="avatar" :src="siteConfig.avatar" :alt="`${siteConfig.profile.name} 的头像`" decoding="async"
+          @error="handleAvatarError" />
 
         <span class="online-indicator" aria-label="在线" title="在线" />
-
       </div>
 
       <!-- =========================
@@ -120,29 +149,92 @@ onUnmounted(() => {
            ========================= -->
 
       <div class="profile-info">
+
         <h1 class="profile-name">
           {{ siteConfig.profile.name }}
         </h1>
 
         <p class="profile-subtitle">
-          {{
-            siteConfig.profile.subtitle
-          }}
+          {{ siteConfig.profile.subtitle }}
         </p>
 
-        <p v-if="
-          siteConfig.profile.location
-        " class="profile-location">
-          <span class="location-icon">
-            ◆
+        <!-- =========================
+             Location + Weather
+             ========================= -->
+
+        <div class="profile-weather">
+
+          <!-- Location -->
+
+          <span class="profile-location">
+            <span class="location-icon">
+              ◆
+            </span>
+
+            <span>
+              {{ profileLocation }}
+            </span>
+          </span>
+
+          <!-- Divider -->
+
+          <span class="weather-divider">
+            ·
+          </span>
+
+          <!-- Weather -->
+
+          <span class="weather-condition" :class="{
+            loading:
+              weatherLoading &&
+              !weather,
+          }">
+            <span class="weather-emoji" aria-hidden="true">
+              {{ weatherIcon }}
+            </span>
+
+            <span>
+              {{
+                weather?.text ||
+                '加载中'
+              }}
+            </span>
+          </span>
+
+          <!-- Temperature -->
+
+          <template v-if="weather">
+
+            <span class="weather-divider">
+              ·
+            </span>
+
+            <span class="weather-temperature">
+              {{
+                Math.round(
+                  weather.temperature,
+                )
+              }}°
+            </span>
+
+          </template>
+
+        </div>
+
+        <!-- =========================
+             Wind
+             ========================= -->
+
+        <div v-if="weather" class="weather-details">
+          <span>
+            {{ weather.windDirection }}
           </span>
 
           <span>
-            {{
-              siteConfig.profile.location
-            }}
+            {{ weather.windPower }}级
           </span>
-        </p>
+        </div>
+
       </div>
 
       <!-- =========================
@@ -150,6 +242,7 @@ onUnmounted(() => {
            ========================= -->
 
       <div class="profile-clock">
+
         <time class="clock-time">
           {{ formattedTime }}
         </time>
@@ -157,6 +250,7 @@ onUnmounted(() => {
         <time class="clock-date">
           {{ formattedDate }}
         </time>
+
       </div>
 
     </div>
@@ -309,15 +403,21 @@ onUnmounted(() => {
   color:
     var(--text-color);
 
-  font-size:
-    clamp(26px, 3vw, 31px);
+  font-family:
+    'Pacifico',
+    cursive;
 
-  font-weight: 700;
+  font-size:
+    clamp(34px, 4vw, 42px);
+
+  font-weight:
+    400;
 
   letter-spacing:
     0.025em;
 
-  line-height: 1.25;
+  line-height:
+    1.25;
 
   text-shadow:
     var(--text-shadow);
@@ -329,14 +429,23 @@ onUnmounted(() => {
 
 .profile-subtitle {
   margin:
-    8px 0 0;
+    10px 0 0;
 
   color:
     var(--text-secondary);
 
-  font-size: 13px;
+  font-family:
+    'Pacifico',
+    cursive;
 
-  line-height: 1.7;
+  font-size:
+    clamp(12px, 1.8vw, 15px);
+
+  font-weight:
+    400;
+
+  line-height:
+    1.7;
 
   letter-spacing:
     0.04em;
@@ -349,23 +458,33 @@ onUnmounted(() => {
     text-shadow 0.35s ease;
 }
 
-.profile-location {
-  display: inline-flex;
+/* =================================
+   Weather
+   ================================= */
+
+.profile-weather {
+  display: flex;
 
   align-items: center;
+
   justify-content: center;
 
-  gap: 4px;
+  flex-wrap: wrap;
+
+  gap:
+    7px;
 
   margin:
-    6px 0 0;
+    10px 0 0;
 
   color:
     var(--text-secondary);
 
-  font-size: 12px;
+  font-size:
+    clamp(10px, 1.5vw, 13px);
 
-  line-height: 1.5;
+  line-height:
+    1.5;
 
   text-shadow:
     var(--text-shadow-secondary);
@@ -375,14 +494,105 @@ onUnmounted(() => {
     text-shadow 0.35s ease;
 }
 
+.profile-location,
+.weather-condition,
+.weather-temperature {
+  display: inline-flex;
+
+  align-items: center;
+
+  white-space:
+    nowrap;
+}
+
+.profile-location {
+  gap:
+    5px;
+}
+
 .location-icon {
   color:
     var(--accent-color);
 
-  font-size: 11px;
+  font-size:
+    10px;
 
   transition:
     color 0.35s ease;
+}
+
+.weather-condition {
+  gap:
+    5px;
+}
+
+.weather-emoji {
+  font-size:
+    15px;
+
+  line-height:
+    1;
+}
+
+.weather-temperature {
+  color:
+    var(--text-color);
+
+  font-size:
+    1.05em;
+
+  font-weight:
+    600;
+
+  transition:
+    color 0.35s ease;
+}
+
+.weather-divider {
+  opacity:
+    0.45;
+
+  user-select:
+    none;
+}
+
+.weather-condition.loading {
+  opacity:
+    0.65;
+}
+
+/* =================================
+   Wind
+   ================================= */
+
+.weather-details {
+  display: flex;
+
+  align-items: center;
+
+  justify-content: center;
+
+  gap:
+    12px;
+
+  margin-top:
+    5px;
+
+  color:
+    var(--text-muted);
+
+  font-size:
+    clamp(11px, 1.4vw, 13px);
+
+  line-height:
+    1.4;
+
+  text-shadow:
+    var(--text-shadow-secondary);
+
+  transition:
+    color 0.35s ease,
+    text-shadow 0.35s ease;
 }
 
 /* =================================
@@ -398,9 +608,11 @@ onUnmounted(() => {
 
   width: 100%;
 
-  margin-top: 23px;
+  margin-top:
+    23px;
 
-  padding-top: 18px;
+  padding-top:
+    18px;
 
   border-top:
     1px solid rgb(255 255 255 / 18%);
@@ -423,12 +635,14 @@ onUnmounted(() => {
   font-size:
     clamp(24px, 3vw, 29px);
 
-  font-weight: 700;
+  font-weight:
+    700;
 
   letter-spacing:
     0.065em;
 
-  line-height: 1.2;
+  line-height:
+    1.2;
 
   font-variant-numeric:
     tabular-nums;
@@ -442,17 +656,20 @@ onUnmounted(() => {
 }
 
 .clock-date {
-  margin-top: 7px;
+  margin-top:
+    7px;
 
   color:
     var(--text-secondary);
 
-  font-size: 11px;
+  font-size:
+    11px;
 
   letter-spacing:
     0.035em;
 
-  line-height: 1.6;
+  line-height:
+    1.6;
 
   text-shadow:
     var(--text-shadow-secondary);
@@ -521,30 +738,60 @@ onUnmounted(() => {
   }
 
   .avatar-wrapper {
-    width: 96px;
-    height: 96px;
+    width:
+      96px;
 
-    margin-bottom: 16px;
+    height:
+      96px;
+
+    margin-bottom:
+      16px;
   }
 
   .online-indicator {
-    right: -1px;
+    right:
+      -1px;
 
-    bottom: 1px;
+    bottom:
+      1px;
   }
 
   .profile-name {
-    font-size: 27px;
+    font-size:
+      34px;
+  }
+
+  .profile-subtitle {
+    font-size:
+      14px;
+  }
+
+  .profile-weather {
+    font-size:
+      11px;
+  }
+
+  .weather-emoji {
+    font-size:
+      14px;
+  }
+
+  .weather-details {
+    font-size:
+      11px;
   }
 
   .profile-clock {
-    margin-top: 20px;
+    margin-top:
+      20px;
 
-    padding-top: 16px;
+    padding-top:
+      16px;
   }
 
   .clock-time {
-    font-size: 25px;
+    font-size:
+      25px;
   }
 }
 
@@ -557,13 +804,17 @@ onUnmounted(() => {
   .profile-name,
   .profile-subtitle,
   .profile-location,
+  .weather-condition,
+  .weather-temperature,
+  .weather-details,
   .clock-time,
   .clock-date,
   .profile-clock,
   .avatar,
   .online-indicator,
   .location-icon {
-    transition: none;
+    transition:
+      none;
   }
 }
 </style>

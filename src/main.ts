@@ -9,13 +9,16 @@ import './assets/styles/global.scss'
 
 /* =================================
    初始化主题
+
    默认：暗色
    ================================= */
 
-const savedTheme = localStorage.getItem('theme')
+const savedTheme =
+    localStorage.getItem('theme')
 
 const initialTheme =
-    savedTheme === 'light' || savedTheme === 'dark'
+    savedTheme === 'light' ||
+        savedTheme === 'dark'
         ? savedTheme
         : 'dark'
 
@@ -31,6 +34,8 @@ document.documentElement.style.colorScheme =
 
 const app = createApp(App)
 
-app.use(createPinia())
+const pinia = createPinia()
+
+app.use(pinia)
 
 app.mount('#app')

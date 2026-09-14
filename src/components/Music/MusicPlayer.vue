@@ -1,9 +1,9 @@
 <script setup lang="ts">
-import '@/components/Styles/Music/music.scss'
+import '@/styles/Music/music.scss'
 
 import {
   useMusicPlayer,
-} from '@/components/Use/Music/Music'
+} from '@/utils/Music/music.ts'
 
 const {
   audio,

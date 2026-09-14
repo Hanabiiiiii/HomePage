@@ -1,0 +1,274 @@
+/* src/styles/Weather/weather.scss */
+
+.weather-card {
+    position: relative;
+    width: 100%;
+    padding: 18px 20px 16px;
+}
+
+.weather-main {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    min-width: 0;
+}
+
+.weather-icon {
+    display: grid;
+    flex: 0 0 48px;
+    width: 48px;
+    height: 48px;
+    place-items: center;
+
+    border:
+        1px solid rgb(255 255 255 / 18%);
+
+    border-radius:
+        15px;
+
+    background:
+        rgb(255 255 255 / 8%);
+
+    font-size:
+        27px;
+}
+
+.weather-info {
+    display: flex;
+
+    flex: 1;
+
+    flex-direction: column;
+
+    min-width:
+        0;
+
+    gap:
+        4px;
+}
+
+.weather-place {
+    overflow: hidden;
+
+    color:
+        var(--text-color);
+
+    font-size:
+        14px;
+
+    font-weight:
+        700;
+
+    line-height:
+        1.45;
+
+    text-overflow:
+        ellipsis;
+
+    white-space:
+        nowrap;
+
+    transition:
+        color 0.35s ease,
+        text-shadow 0.35s ease;
+}
+
+.weather-state {
+    overflow: hidden;
+
+    color:
+        var(--text-secondary);
+
+    font-size:
+        12px;
+
+    line-height:
+        1.45;
+
+    text-overflow:
+        ellipsis;
+
+    white-space:
+        nowrap;
+
+    transition:
+        color 0.35s ease,
+        text-shadow 0.35s ease;
+}
+
+.weather-temperature {
+    flex:
+        0 0 auto;
+
+    padding-right:
+        26px;
+
+    color:
+        var(--text-color);
+
+    font-size:
+        clamp(28px, 3vw, 36px);
+
+    font-weight:
+        700;
+
+    line-height:
+        1;
+
+    font-variant-numeric:
+        tabular-nums;
+
+    transition:
+        color 0.35s ease,
+        text-shadow 0.35s ease;
+}
+
+.weather-details {
+    display:
+        flex;
+
+    gap:
+        16px;
+
+    margin-top:
+        14px;
+
+    padding-top:
+        12px;
+
+    border-top:
+        1px solid rgb(255 255 255 / 16%);
+
+    color:
+        var(--text-secondary);
+
+    font-size:
+        11px;
+
+    line-height:
+        1.5;
+
+    text-shadow:
+        var(--text-shadow-secondary);
+
+    transition:
+        color 0.35s ease,
+        text-shadow 0.35s ease;
+}
+
+.weather-status {
+    margin-top:
+        12px;
+
+    padding-right:
+        28px;
+
+    color:
+        var(--text-secondary);
+
+    font-size:
+        11px;
+
+    line-height:
+        1.6;
+
+    text-shadow:
+        var(--text-shadow-secondary);
+
+    transition:
+        color 0.35s ease,
+        text-shadow 0.35s ease;
+}
+
+/*
+ * 保留原 WeatherCard 刷新按钮定位规则，
+ * 防止 liquid-glass > * 覆盖 absolute。
+ */
+
+.weather-card>.weather-refresh {
+    position:
+        absolute !important;
+
+    right:
+        14px;
+
+    bottom:
+        14px;
+
+    z-index:
+        10;
+
+    width:
+        28px;
+
+    height:
+        28px;
+
+    min-width:
+        28px;
+
+    min-height:
+        28px;
+
+    padding:
+        0;
+
+    color:
+        var(--text-secondary);
+
+    font-size:
+        16px;
+}
+
+.weather-refresh:disabled {
+    opacity:
+        0.7;
+}
+
+.spinning {
+    display:
+        inline-block;
+
+    animation:
+        weather-spin 0.8s linear infinite;
+}
+
+@keyframes weather-spin {
+    to {
+        transform:
+            rotate(360deg);
+    }
+}
+
+@media (max-width: 420px) {
+    .weather-card {
+        padding:
+            16px;
+    }
+
+    .weather-icon {
+        flex-basis:
+            44px;
+
+        width:
+            44px;
+
+        height:
+            44px;
+
+        font-size:
+            24px;
+    }
+
+    .weather-temperature {
+        padding-right:
+            24px;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .spinning {
+        animation:
+            none;
+    }
+}
