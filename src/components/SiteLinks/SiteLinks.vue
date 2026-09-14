@@ -41,7 +41,6 @@ function previousPage() {
   }
 
   direction.value = 'previous'
-
   currentPage.value -= 1
 }
 
@@ -51,7 +50,6 @@ function nextPage() {
   }
 
   direction.value = 'next'
-
   currentPage.value += 1
 }
 
@@ -88,9 +86,8 @@ function goToPage(page: number) {
           direction === 'previous',
       }">
         <!--
-          每页始终保留 5 个位置。
-          这样以后增加网站时，
-          分页逻辑不需要再次修改。
+          每页固定 5 个位置。
+          后续继续增加网站时自动分页。
         -->
 
         <div v-for="index in pageSize" :key="index" class="site-links__slot">
@@ -100,8 +97,8 @@ function goToPage(page: number) {
 
             <span class="site-link__icon" aria-hidden="true">
               {{
-                currentLinks[index - 1]
-                  .icon || '↗'
+                currentLinks[index - 1].icon ||
+                '↗'
               }}
             </span>
 
@@ -110,8 +107,7 @@ function goToPage(page: number) {
             <span class="site-link__content">
               <strong class="site-link__title">
                 {{
-                  currentLinks[index - 1]
-                    .title
+                  currentLinks[index - 1].title
                 }}
               </strong>
 
@@ -185,13 +181,17 @@ function goToPage(page: number) {
    ================================= */
 
 .site-links {
-  display: flex;
+  display:
+    flex;
 
-  flex-direction: column;
+  flex-direction:
+    column;
 
-  width: 100%;
+  width:
+    100%;
 
-  min-width: 0;
+  min-width:
+    0;
 }
 
 /* =================================
@@ -199,9 +199,11 @@ function goToPage(page: number) {
    ================================= */
 
 .site-links__body {
-  width: 100%;
+  width:
+    100%;
 
-  overflow: hidden;
+  overflow:
+    hidden;
 }
 
 /* =================================
@@ -209,106 +211,106 @@ function goToPage(page: number) {
    ================================= */
 
 .site-links__page {
-  display: flex;
+  display:
+    flex;
 
-  flex-direction: column;
+  flex-direction:
+    column;
 
-  gap: 12px;
+  gap:
+    12px;
 
-  width: 100%;
+  width:
+    100%;
 }
 
 /* =================================
    Slot
-
-   Desktop:
-   5 × 74px
-   + 4 × 12px
-   = 418px
-
-   Pagination is outside the slots,
-   so its position is always stable.
    ================================= */
 
 .site-links__slot {
-  width: 100%;
+  width:
+    100%;
 
-  height: 74px;
+  height:
+    74px;
 
-  flex: 0 0 74px;
-}
-
-/* =================================
-   Animation
-   ================================= */
-
-.site-links__page--next {
-  animation:
-    site-page-next 0.3s ease both;
-}
-
-.site-links__page--previous {
-  animation:
-    site-page-previous 0.3s ease both;
-}
-
-@keyframes site-page-next {
-  from {
-    opacity: 0;
-
-    transform:
-      translateX(28px);
-  }
-
-  to {
-    opacity: 1;
-
-    transform:
-      translateX(0);
-  }
-}
-
-@keyframes site-page-previous {
-  from {
-    opacity: 0;
-
-    transform:
-      translateX(-28px);
-  }
-
-  to {
-    opacity: 1;
-
-    transform:
-      translateX(0);
-  }
+  flex:
+    0 0 74px;
 }
 
 /* =================================
    Link
+
+   这里明确复用与其他卡片
+   完全一致的液态玻璃参数
    ================================= */
 
 .site-link {
-  display: flex;
+  position:
+    relative;
 
-  align-items: center;
+  display:
+    flex;
 
-  gap: 14px;
+  align-items:
+    center;
 
-  width: 100%;
+  gap:
+    14px;
 
-  height: 74px;
+  width:
+    100%;
 
-  min-width: 0;
+  height:
+    74px;
 
-  padding: 16px 18px;
+  min-width:
+    0;
 
-  box-sizing: border-box;
+  padding:
+    16px 18px;
+
+  box-sizing:
+    border-box;
 
   color:
     var(--text-color);
 
-  text-decoration: none;
+  text-decoration:
+    none;
+
+  /*
+   * 与全局 .liquid-glass 保持一致
+   */
+
+  background:
+    var(--glass-background);
+
+  border:
+    1px double var(--glass-border);
+
+  border-radius:
+    var(--glass-radius);
+
+  backdrop-filter:
+    blur(var(--glass-blur)) saturate(var(--glass-saturation));
+
+  -webkit-backdrop-filter:
+    blur(var(--glass-blur)) saturate(var(--glass-saturation));
+
+  box-shadow:
+    inset 2px -2px 1px -1px var(--glass-highlight),
+
+    inset -2px 2px 1px -1px var(--glass-highlight),
+
+    inset 6px -6px 1px -6px var(--glass-highlight-soft),
+
+    inset -6px 6px 1px -6px var(--glass-highlight-soft),
+
+    inset 0 0 2px rgb(0 0 0 / 16%),
+
+    0 4px 8px var(--glass-shadow);
 
   transition:
     color 0.35s ease,
@@ -318,28 +320,108 @@ function goToPage(page: number) {
     transform 0.25s ease;
 }
 
+/*
+ * 强制与全局 liquid-glass 的斜向高光一致。
+ */
+
+.site-link::after {
+  content:
+    '';
+
+  position:
+    absolute;
+
+  z-index:
+    0;
+
+  inset:
+    0;
+
+  border-radius:
+    inherit;
+
+  background:
+    linear-gradient(45deg,
+      rgb(255 255 255 / 24%) 0%,
+      transparent 18%,
+      transparent 82%,
+      rgb(255 255 255 / 24%) 100%);
+
+  filter:
+    blur(2px);
+
+  pointer-events:
+    none;
+
+  transition:
+    opacity 0.35s ease;
+}
+
+/*
+ * 防止全局内容层规则失效。
+ */
+
+.site-link>* {
+  position:
+    relative;
+
+  z-index:
+    2;
+}
+
+/* =================================
+   Hover
+   ================================= */
+
+.site-link:hover {
+  border-color:
+    var(--glass-border-hover);
+
+  box-shadow:
+    inset 2px -2px 1px -1px rgb(255 255 255 / 80%),
+
+    inset -2px 2px 1px -1px rgb(255 255 255 / 80%),
+
+    inset 6px -6px 1px -6px rgb(255 255 255 / 45%),
+
+    inset -6px 6px 1px -6px rgb(255 255 255 / 45%),
+
+    inset 0 0 2px rgb(0 0 0 / 18%),
+
+    0 6px 12px rgb(0 0 0 / 14%);
+
+  transform:
+    translateY(-2px);
+}
+
 /* =================================
    Icon
    ================================= */
 
 .site-link__icon {
-  display: grid;
+  display:
+    grid;
 
   flex:
     0 0 42px;
 
-  width: 42px;
+  width:
+    42px;
 
-  height: 42px;
+  height:
+    42px;
 
-  place-items: center;
+  place-items:
+    center;
 
   color:
     var(--accent-color);
 
-  font-size: 20px;
+  font-size:
+    20px;
 
-  line-height: 1;
+  line-height:
+    1;
 
   background:
     rgb(255 255 255 / 9%);
@@ -347,7 +429,8 @@ function goToPage(page: number) {
   border:
     1px solid rgb(255 255 255 / 22%);
 
-  border-radius: 13px;
+  border-radius:
+    13px;
 
   box-shadow:
     inset 1px -1px 1px rgb(255 255 255 / 55%),
@@ -362,20 +445,36 @@ function goToPage(page: number) {
     transform 0.25s ease;
 }
 
+.site-link:hover .site-link__icon {
+  background:
+    rgb(255 255 255 / 14%);
+
+  border-color:
+    rgb(255 255 255 / 34%);
+
+  transform:
+    scale(1.03);
+}
+
 /* =================================
    Content
    ================================= */
 
 .site-link__content {
-  display: flex;
+  display:
+    flex;
 
-  flex: 1;
+  flex:
+    1;
 
-  flex-direction: column;
+  flex-direction:
+    column;
 
-  min-width: 0;
+  min-width:
+    0;
 
-  gap: 4px;
+  gap:
+    4px;
 }
 
 /* =================================
@@ -383,20 +482,26 @@ function goToPage(page: number) {
    ================================= */
 
 .site-link__title {
-  overflow: hidden;
+  overflow:
+    hidden;
 
   color:
     var(--text-color);
 
-  font-size: 15px;
+  font-size:
+    15px;
 
-  font-weight: 700;
+  font-weight:
+    700;
 
-  line-height: 1.5;
+  line-height:
+    1.5;
 
-  text-overflow: ellipsis;
+  text-overflow:
+    ellipsis;
 
-  white-space: nowrap;
+  white-space:
+    nowrap;
 
   text-shadow:
     var(--text-shadow);
@@ -411,18 +516,23 @@ function goToPage(page: number) {
    ================================= */
 
 .site-link__description {
-  overflow: hidden;
+  overflow:
+    hidden;
 
   color:
     var(--text-secondary);
 
-  font-size: 12px;
+  font-size:
+    12px;
 
-  line-height: 1.5;
+  line-height:
+    1.5;
 
-  text-overflow: ellipsis;
+  text-overflow:
+    ellipsis;
 
-  white-space: nowrap;
+  white-space:
+    nowrap;
 
   text-shadow:
     var(--text-shadow-secondary);
@@ -443,9 +553,11 @@ function goToPage(page: number) {
   color:
     var(--text-secondary);
 
-  font-size: 18px;
+  font-size:
+    18px;
 
-  line-height: 1;
+  line-height:
+    1;
 
   text-shadow:
     var(--text-shadow-secondary);
@@ -454,26 +566,6 @@ function goToPage(page: number) {
     color 0.35s ease,
     text-shadow 0.35s ease,
     transform 0.25s ease;
-}
-
-/* =================================
-   Hover
-   ================================= */
-
-.site-link:hover {
-  transform:
-    translateY(-2px);
-}
-
-.site-link:hover .site-link__icon {
-  background:
-    rgb(255 255 255 / 14%);
-
-  border-color:
-    rgb(255 255 255 / 34%);
-
-  transform:
-    scale(1.03);
 }
 
 .site-link:hover .site-link__arrow {
@@ -490,51 +582,74 @@ function goToPage(page: number) {
    ================================= */
 
 .site-pagination {
-  display: flex;
+  display:
+    flex;
 
-  align-items: center;
+  align-items:
+    center;
 
-  justify-content: center;
+  justify-content:
+    center;
 
-  gap: 12px;
+  gap:
+    12px;
 
-  width: 100%;
+  width:
+    100%;
 
-  height: 34px;
+  height:
+    34px;
 
-  margin-top: 8px;
+  margin-top:
+    8px;
 
   flex:
     0 0 34px;
 }
 
+/* =================================
+   Pagination Button
+   ================================= */
+
 .site-pagination__button {
-  position: relative;
+  position:
+    relative;
 
-  display: inline-flex;
+  display:
+    inline-flex;
 
-  align-items: center;
+  align-items:
+    center;
 
-  justify-content: center;
+  justify-content:
+    center;
 
-  width: 30px;
+  width:
+    30px;
 
-  height: 30px;
+  height:
+    30px;
 
-  min-width: 30px;
+  min-width:
+    30px;
 
-  min-height: 30px;
+  min-height:
+    30px;
 
-  margin: 0;
+  margin:
+    0;
 
-  padding: 0;
+  padding:
+    0;
 
-  border-radius: 50%;
+  border-radius:
+    50%;
 
   color:
     var(--text-secondary);
 
-  line-height: 0;
+  line-height:
+    0;
 
   transform:
     none !important;
@@ -573,20 +688,26 @@ function goToPage(page: number) {
    ================================= */
 
 .site-pagination__icon {
-  display: block;
+  display:
+    block;
 
-  width: 17px;
+  width:
+    17px;
 
-  height: 17px;
+  height:
+    17px;
 
   flex:
     0 0 17px;
 
-  margin: 0;
+  margin:
+    0;
 
-  padding: 0;
+  padding:
+    0;
 
-  pointer-events: none;
+  pointer-events:
+    none;
 }
 
 /* =================================
@@ -594,39 +715,52 @@ function goToPage(page: number) {
    ================================= */
 
 .site-pagination__dots {
-  display: flex;
+  display:
+    flex;
 
-  align-items: center;
+  align-items:
+    center;
 
-  justify-content: center;
+  justify-content:
+    center;
 
-  gap: 6px;
+  gap:
+    6px;
 
-  height: 100%;
+  height:
+    100%;
 }
 
 .site-pagination__dot {
-  display: block;
+  display:
+    block;
 
-  width: 6px;
+  width:
+    6px;
 
-  height: 6px;
+  height:
+    6px;
 
-  margin: 0;
+  margin:
+    0;
 
-  padding: 0;
+  padding:
+    0;
 
   border:
     1px solid var(--glass-border);
 
-  border-radius: 50%;
+  border-radius:
+    50%;
 
   background:
     var(--glass-background);
 
-  opacity: 0.6;
+  opacity:
+    0.6;
 
-  cursor: pointer;
+  cursor:
+    pointer;
 
   transition:
     width 0.25s ease,
@@ -637,16 +771,19 @@ function goToPage(page: number) {
 }
 
 .site-pagination__dot:hover {
-  opacity: 1;
+  opacity:
+    1;
 
   transform:
     scale(1.15);
 }
 
 .site-pagination__dot.active {
-  width: 18px;
+  width:
+    18px;
 
-  border-radius: 999px;
+  border-radius:
+    999px;
 
   border-color:
     var(--accent-color);
@@ -654,12 +791,18 @@ function goToPage(page: number) {
   background:
     var(--accent-color);
 
-  opacity: 0.85;
+  opacity:
+    0.85;
 }
 
 /* =================================
    Light Theme
    ================================= */
+
+:global(html[data-theme='light']) .site-link {
+  background:
+    var(--glass-background);
+}
 
 :global(html[data-theme='light']) .site-link__icon {
   border-color:
@@ -691,55 +834,61 @@ function goToPage(page: number) {
 
 @media (max-width: 760px) {
   .site-links__page {
-    gap: 10px;
+    gap:
+      10px;
   }
 
-  /*
-   * 5 × 70px
-   * + 4 × 10px
-   * = 390px
-   */
-
   .site-links__slot {
-    height: 70px;
+    height:
+      70px;
 
     flex:
       0 0 70px;
   }
 
   .site-link {
-    height: 70px;
+    height:
+      70px;
 
-    gap: 12px;
+    gap:
+      12px;
 
-    padding: 14px;
+    padding:
+      14px;
   }
 
   .site-link__icon {
     flex:
       0 0 38px;
 
-    width: 38px;
+    width:
+      38px;
 
-    height: 38px;
+    height:
+      38px;
 
-    font-size: 18px;
+    font-size:
+      18px;
   }
 
   .site-link__title {
-    font-size: 14px;
+    font-size:
+      14px;
   }
 
   .site-link__description {
-    font-size: 11px;
+    font-size:
+      11px;
   }
 
   .site-link__arrow {
-    font-size: 18px;
+    font-size:
+      18px;
   }
 
   .site-pagination {
-    margin-top: 6px;
+    margin-top:
+      6px;
   }
 }
 
@@ -749,9 +898,11 @@ function goToPage(page: number) {
 
 @media (max-width: 420px) {
   .site-link {
-    gap: 10px;
+    gap:
+      10px;
 
-    padding: 13px;
+    padding:
+      13px;
   }
 }
 
@@ -768,18 +919,21 @@ function goToPage(page: number) {
   .site-link__arrow,
   .site-pagination__button,
   .site-pagination__dot {
-    transition: none;
+    transition:
+      none;
   }
 
   .site-links__page--next,
   .site-links__page--previous {
-    animation: none;
+    animation:
+      none;
   }
 
   .site-link:hover,
   .site-link:hover .site-link__icon,
   .site-link:hover .site-link__arrow {
-    transform: none;
+    transform:
+      none;
   }
 }
 </style>
