@@ -154,11 +154,11 @@ function goToPage(page: number) {
           active:
             currentPage === page - 1,
         }" type="button" :aria-label="`第 ${page} 页`" :aria-current="currentPage === page - 1
-              ? 'page'
-              : undefined
-            " @click="
-            goToPage(page - 1)
-            ">
+          ? 'page'
+          : undefined
+          " @click="
+              goToPage(page - 1)
+              ">
         </button>
       </div>
 
@@ -210,6 +210,15 @@ function goToPage(page: number) {
    Page
    ================================= */
 
+/*
+ * 注意：
+ * 1. 这里刻意不写 will-change / backface-visibility，
+ *    否则父元素会被提升为合成层，子元素的 backdrop-filter 会采样错位。
+ * 2. 动画只做 transform 动画（位移 + 缩放），不做 opacity 动画——
+ *    opacity 从 0 开始会让模糊"跟着淡入"，
+ *    视觉上就像"从透明变成模糊"，而不是一开始就是模糊的玻璃。
+ */
+
 .site-links__page {
   display:
     flex;
@@ -222,6 +231,52 @@ function goToPage(page: number) {
 
   width:
     100%;
+}
+
+/* =================================
+   Page Transition
+   ================================= */
+
+/* next：从右侧"冲"进来，带一点缩小起步 */
+.site-links__page--next {
+  transform-origin:
+    right center;
+
+  animation:
+    site-links-slide-from-right 0.5s cubic-bezier(0.16, 1, 0.3, 1) backwards;
+}
+
+/* previous：从左侧"冲"进来 */
+.site-links__page--previous {
+  transform-origin:
+    left center;
+
+  animation:
+    site-links-slide-from-left 0.5s cubic-bezier(0.16, 1, 0.3, 1) backwards;
+}
+
+@keyframes site-links-slide-from-right {
+  from {
+    transform:
+      translate3d(72px, 0, 0) scale(0.92);
+  }
+
+  to {
+    transform:
+      translate3d(0, 0, 0) scale(1);
+  }
+}
+
+@keyframes site-links-slide-from-left {
+  from {
+    transform:
+      translate3d(-72px, 0, 0) scale(0.92);
+  }
+
+  to {
+    transform:
+      translate3d(0, 0, 0) scale(1);
+  }
 }
 
 /* =================================
@@ -889,6 +944,41 @@ function goToPage(page: number) {
   .site-pagination {
     margin-top:
       6px;
+  }
+
+  /* 移动端：位移减小、缩放幅度减小，避免小屏显得"跳" */
+  .site-links__page--next {
+    animation:
+      site-links-slide-from-right 0.42s cubic-bezier(0.16, 1, 0.3, 1) backwards;
+  }
+
+  .site-links__page--previous {
+    animation:
+      site-links-slide-from-left 0.42s cubic-bezier(0.16, 1, 0.3, 1) backwards;
+  }
+
+  @keyframes site-links-slide-from-right {
+    from {
+      transform:
+        translate3d(48px, 0, 0) scale(0.95);
+    }
+
+    to {
+      transform:
+        translate3d(0, 0, 0) scale(1);
+    }
+  }
+
+  @keyframes site-links-slide-from-left {
+    from {
+      transform:
+        translate3d(-48px, 0, 0) scale(0.95);
+    }
+
+    to {
+      transform:
+        translate3d(0, 0, 0) scale(1);
+    }
   }
 }
 

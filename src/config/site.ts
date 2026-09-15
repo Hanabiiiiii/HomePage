@@ -78,12 +78,18 @@ export const siteConfig = {
      */
     local: {
       desktop: [
-        '/images/desktop/background1.png',
+        '/images/desktop/background1.jpg',
         '/images/desktop/background2.png',
         '/images/desktop/background3.png',
         '/images/desktop/background4.png',
         '/images/desktop/background5.png',
         '/images/desktop/background6.png',
+        '/images/desktop/background7.jpg',
+        '/images/desktop/background8.jpg',
+        '/images/desktop/background9.jpg',
+        '/images/desktop/background10.jpg',
+        '/images/desktop/background11.png',
+        '/images/desktop/background12.jpg',
       ],
 
       mobile: [
