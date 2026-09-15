@@ -17,6 +17,30 @@ export interface MusicTrack {
   url: string
 }
 
+export interface BackgroundSource {
+  /**
+   * 随机图 API 地址（优先加载）。
+   * 留空字符串则跳过 API，直接使用本地图片。
+   */
+  api: string
+
+  /**
+   * API 加载超时时间（毫秒）。
+   * 超过该时间图片仍未加载完成，则回退到本地图片。
+   * 设置为 0 或负数表示不启用超时。
+   */
+  apiTimeout: number
+
+  /**
+   * 本地回退图片。
+   * API 超时或加载失败时，会从对应数组中随机取一张。
+   */
+  local: {
+    desktop: string[]
+    mobile: string[]
+  }
+}
+
 export const siteConfig = {
   /* =================================
      Site
@@ -28,13 +52,49 @@ export const siteConfig = {
   avatar:
     '/icon/logo.gif',
 
-  background: {
-    desktop:
-      '/images/background.png',
+  /* =================================
+     Background
+     ================================= */
 
-    mobile:
-      '/images/background-mobile.png',
-  },
+  background: {
+    /* 随机图 API：优先加载，加载成功即作为背景 */
+    api:
+      'https://random.fwneko.com/api/random?type=auto',
+
+    /* API 超时时间（毫秒），超时后回退到本地图片 */
+    apiTimeout:
+      6000,
+
+    /*
+     * 本地回退图片：API 超时或加载失败时随机取一张。
+     *
+     * 命名示例：
+     *   background1.png
+     *   background2.jpg
+     *   background3.gif
+     *   background4.webp
+     *
+     * 直接往数组里继续添加即可，加载时会随机选取。
+     */
+    local: {
+      desktop: [
+        '/images/desktop/background1.png',
+        '/images/desktop/background2.png',
+        '/images/desktop/background3.png',
+        '/images/desktop/background4.png',
+        '/images/desktop/background5.png',
+        '/images/desktop/background6.png',
+      ],
+
+      mobile: [
+        '/images/mobile/background1.png',
+        '/images/mobile/background2.png',
+        '/images/mobile/background3.png',
+        '/images/mobile/background4.png',
+        '/images/mobile/background5.png',
+      ],
+    },
+  } satisfies BackgroundSource,
 
   /* =================================
      Weather
@@ -102,7 +162,7 @@ export const siteConfig = {
       'Ciallo～(∠・ω< )⌒☆',
 
     /*
-     * Weather API 请求失败时使用。
+     * Weather API иҜ·жұӮеӨұиҙҘж—¶дҪҝз”ЁгҖӮ
      */
     location:
       'China',
@@ -115,27 +175,27 @@ export const siteConfig = {
   links: [
     {
       title:
-        '个人博客',
+        '博客',
       url:
         'https://blog.fwneko.com',
       description:
-        '记录技术与生活',
+        '个人博客',
       icon:
         '🏠',
     },
 
     {
       title:
-        '站点监测',
+        '状态监控',
 
       url:
         'https://status.fwneko.com/',
 
       description:
-        'Upkuma站点服务监测',
+        'Upkuma状态监控',
 
       icon:
-        '🔭',
+        '🔬',
     },
 
     {
@@ -144,7 +204,7 @@ export const siteConfig = {
       url:
         'https://status.fwneko.com/',
       description:
-        '搜集的一些好玩的网站',
+        '一些好玩的链接',
       icon:
         '📚',
     },
@@ -155,9 +215,9 @@ export const siteConfig = {
       url:
         'https://pan.fwneko.com',
       description:
-        '自建OpenList网盘',
+        'Openlist网盘',
       icon:
-        '☁️',
+        '💿',
     },
 
     {
@@ -168,7 +228,7 @@ export const siteConfig = {
         'https://tv.fwneko.com',
 
       description:
-        'JellyFin媒体库',
+        'JellyFin媒体',
 
       icon:
         '📺',
@@ -181,7 +241,7 @@ export const siteConfig = {
         'https://tv.fwneko.com',
 
       description:
-        'JellyFin媒体库',
+        'JellyFin媒体',
 
       icon:
         '📺',

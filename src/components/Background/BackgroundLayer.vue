@@ -10,19 +10,30 @@ import { useAppStore } from '@/stores/app'
 
 type Theme = 'dark' | 'light'
 
+type BackgroundSource = 'api' | 'local' | ''
+
 const appStore = useAppStore()
 
 const isMobile = ref(false)
 
+const imageSrc = ref('')
+
 const imageLoaded = ref(false)
 
 const imageFailed = ref(false)
+
+const source = ref<BackgroundSource>('')
 
 const theme = ref<Theme>('dark')
 
 let mediaQuery: MediaQueryList | null = null
 
 let themeObserver: MutationObserver | null = null
+
+let loadTimeoutId: number | null = null
+
+/* 已尝试过的本地图片，避免失败后反复取到同一张 */
+let triedLocalImages = new Set<string>()
 
 /* =================================
    当前主题
@@ -33,10 +44,6 @@ function getCurrentTheme(): Theme {
     ? 'light'
     : 'dark'
 }
-
-/* =================================
-   更新主题
-   ================================= */
 
 function updateTheme() {
   theme.value = getCurrentTheme()
@@ -54,15 +61,135 @@ function updateDeviceType() {
 function handleMediaChange(
   event: MediaQueryListEvent,
 ) {
-  isMobile.value =
-    event.matches
+  isMobile.value = event.matches
+
+  /*
+   * 当前已经在使用本地图片时，
+   * 按新的设备类型重新随机一张。
+   */
+  if (source.value === 'local') {
+    triedLocalImages = new Set()
+
+    loadLocalImage()
+  }
 }
 
 /* =================================
-   图片加载
+   本地图片随机选取
+   ================================= */
+
+function pickLocalImage(): string {
+  const { local } = siteConfig.background
+
+  const preferred = isMobile.value
+    ? local.mobile
+    : local.desktop
+
+  const pool = preferred.length > 0
+    ? preferred
+    : local.desktop
+
+  const candidates = pool.filter(
+    (item) => !triedLocalImages.has(item),
+  )
+
+  if (candidates.length === 0) {
+    return ''
+  }
+
+  const index = Math.floor(
+    Math.random() * candidates.length,
+  )
+
+  return candidates[index] ?? ''
+}
+
+/* =================================
+   超时控制
+   ================================= */
+
+function clearLoadTimeout() {
+  if (loadTimeoutId === null) {
+    return
+  }
+
+  window.clearTimeout(loadTimeoutId)
+
+  loadTimeoutId = null
+}
+
+function startLoadTimeout() {
+  clearLoadTimeout()
+
+  const timeout =
+    siteConfig.background.apiTimeout
+
+  if (!timeout || timeout <= 0) {
+    return
+  }
+
+  loadTimeoutId = window.setTimeout(() => {
+    loadTimeoutId = null
+
+    /* API 图片超时，回退到本地图片 */
+    if (
+      source.value === 'api' &&
+      !imageLoaded.value
+    ) {
+      loadLocalImage()
+    }
+  }, timeout)
+}
+
+/* =================================
+   加载流程
+   ================================= */
+
+function loadApiImage() {
+  const { api } = siteConfig.background
+
+  if (!api) {
+    loadLocalImage()
+
+    return
+  }
+
+  source.value = 'api'
+
+  imageFailed.value = false
+
+  imageSrc.value = api
+
+  startLoadTimeout()
+}
+
+function loadLocalImage() {
+  clearLoadTimeout()
+
+  const src = pickLocalImage()
+
+  if (!src) {
+    finishLoadingWithFailure()
+
+    return
+  }
+
+  triedLocalImages.add(src)
+
+  source.value = 'local'
+
+  imageFailed.value = false
+
+  imageSrc.value = src
+}
+
+/* =================================
+   图片事件
    ================================= */
 
 function handleImageLoad() {
+  clearLoadTimeout()
+
   imageLoaded.value = true
 
   imageFailed.value = false
@@ -73,6 +200,17 @@ function handleImageLoad() {
 }
 
 function handleImageError() {
+  clearLoadTimeout()
+
+  /*
+   * API 图片失败 -> 回退本地图片
+   * 本地图片失败 -> 换列表里的另一张
+   * 全部尝试失败 -> finishLoadingWithFailure
+   */
+  loadLocalImage()
+}
+
+function finishLoadingWithFailure() {
   imageLoaded.value = false
 
   imageFailed.value = true
@@ -128,6 +266,12 @@ onMounted(() => {
       handleMediaChange,
     )
   }
+
+  /* ---------------------------------
+     Background
+     --------------------------------- */
+
+  loadApiImage()
 })
 
 /* =================================
@@ -135,6 +279,8 @@ onMounted(() => {
    ================================= */
 
 onUnmounted(() => {
+  clearLoadTimeout()
+
   if (themeObserver) {
     themeObserver.disconnect()
 
@@ -175,13 +321,11 @@ onUnmounted(() => {
          Background Image
          ================================= -->
 
-    <picture v-if="!imageFailed">
-      <source v-if="isMobile" :srcset="siteConfig.background.mobile
-        " media="(max-width: 760px)" />
-
-      <img class="background-image" :src="siteConfig.background.desktop
-        " alt="" decoding="async" @load="handleImageLoad" @error="handleImageError" />
-    </picture>
+    <img v-if="
+      !imageFailed &&
+      imageSrc
+    " class="background-image" :src="imageSrc" alt="" decoding="async" @load="handleImageLoad"
+      @error="handleImageError" />
 
     <!-- =================================
          Dark Overlay
