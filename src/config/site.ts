@@ -162,7 +162,7 @@ export const siteConfig = {
       'Ciallo～(∠・ω< )⌒☆',
 
     /*
-     * Weather API иҜ·жұӮеӨұиҙҘж—¶дҪҝз”ЁгҖӮ
+     * Weather API 
      */
     location:
       'China',
@@ -179,7 +179,7 @@ export const siteConfig = {
       url:
         'https://blog.fwneko.com',
       description:
-        '个人博客',
+        '记录没人看的技术和碎碎念',
       icon:
         '🏠',
     },
@@ -192,7 +192,7 @@ export const siteConfig = {
         'https://status.fwneko.com/',
 
       description:
-        'Upkuma状态监控',
+        'Upkuma站点服务监测',
 
       icon:
         '🔬',
@@ -204,7 +204,7 @@ export const siteConfig = {
       url:
         'https://status.fwneko.com/',
       description:
-        '一些好玩的链接',
+        '一些好玩的网站',
       icon:
         '📚',
     },
@@ -215,7 +215,7 @@ export const siteConfig = {
       url:
         'https://pan.fwneko.com',
       description:
-        'Openlist网盘',
+        '自建Openlist网盘',
       icon:
         '💿',
     },
@@ -228,7 +228,7 @@ export const siteConfig = {
         'https://tv.fwneko.com',
 
       description:
-        'JellyFin媒体',
+        'JellyFin媒体库',
 
       icon:
         '📺',
