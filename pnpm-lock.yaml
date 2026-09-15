@@ -14,6 +14,9 @@ importers:
       vue:
         specifier: ^3.5.42
         version: 3.5.42(typescript@6.0.3)
+      webgl-fluid:
+        specifier: ^0.4.0
+        version: 0.4.0
     devDependencies:
       '@types/node':
         specifier: ^24.13.3
@@ -736,6 +739,9 @@ packages:
       typescript:
         optional: true
 
+  webgl-fluid@0.4.0:
+    resolution: {integrity: sha512-j/GMExSlSRYxNwFBAs5ogA9Xe6iXuYX+GiSERov4+dsTpcINFKesM6ObV0qiEk0RYZ0umYI6mFu8mY4BX15UxQ==}
+
 snapshots:
 
   '@babel/helper-string-parser@7.29.7': {}
@@ -1261,3 +1267,5 @@ snapshots:
       '@vue/shared': 3.5.42
     optionalDependencies:
       typescript: 6.0.3
+
+  webgl-fluid@0.4.0: {}
