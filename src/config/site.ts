@@ -181,13 +181,13 @@ export const siteConfig = {
   links: [
     {
       title:
-        '博客',
+        '摸鱼の客栈',
       url:
         'https://blog.fwneko.com',
       description:
         '记录没人看的技术和碎碎念',
       icon:
-        '🏠',
+        '📖',
     },
 
     {
@@ -229,28 +229,22 @@ export const siteConfig = {
     {
       title:
         '媒体',
-
       url:
         'https://tv.fwneko.com',
-
       description:
         'JellyFin媒体库',
-
       icon:
         '📺',
     },
     {
       title:
-        '媒体',
-
+        '花火火の随机图片API',
       url:
-        'https://tv.fwneko.com',
-
+        'https://random.fwneko.com',
       description:
-        'JellyFin媒体',
-
+        '一个轻量、简单、易维护的二次元随机图片 API',
       icon:
-        '📺',
+        '🖼️',
     },
   ] satisfies SiteLink[],
 
