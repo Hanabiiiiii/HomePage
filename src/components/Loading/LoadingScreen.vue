@@ -12,541 +12,374 @@ import { useAppStore } from '@/stores/app'
 const appStore = useAppStore()
 
 /* =====================================================
-   Loading 状态
+   常量
+   ===================================================== */
+
+const MAX_LOADING_MS = 42000
+
+/* 字体整体超时：字体就绪前不阻塞关 Loading 太久 */
+const FONT_TIMEOUT_MS = 4000
+
+/* 非背景图片独立超时 */
+const IMAGE_TIMEOUT_MS = 3000
+
+/* 连续多少帧稳定才认定"页面就绪" */
+const STABLE_FRAMES = 3
+
+/* 每一轮之间的小睡眠，避免忙等 */
+const CHECK_INTERVAL_MS = 30
+
+/*
+ * Loading 文字淡入前，最多等字体多久。
+ *
+ * - 字体在这个时间内就绪 → Loading 文字用正确字体淡入
+ * - 字体超时 → 用 fallback 淡入（避免 Loading 空白太久）
+ */
+const FONT_FADE_IN_MAX_WAIT_MS = 800
+
+/* =====================================================
+   状态
    ===================================================== */
 
 const visible = ref(true)
 
-/*
- * 波浪文字：把 Loading 拆成字母数组。
- *
- * 用常量而不是在模板里 split，
- * 避免每次渲染都重新创建数组。
- */
+/* Loading 文字是否已经可以淡入 */
+const contentReady = ref(false)
+
 const loadingText = 'Loading'
 
 /* =====================================================
-   全局请求监听
+   关键字体 —— 顶层立即触发
+   =====================================================
+
+   在 <script setup> 顶层调用（而不是 onMounted 里），
+   让字体请求在 Vue 组件实例化时立刻发出。
+
+   - 拉丁区用空字符串
+   - CJK 区传入"正在准备页面资源"，只下载对应分区
+   - Pacifico 也要拉，ProfileCard 的昵称用它
    ===================================================== */
 
-/*
- * 不主动发起接口请求。
- *
- * 这里只监听页面原本已经发起的 fetch，
- * 避免 LoadingScreen 自己再次请求 API。
- */
+const CRITICAL_CJK_TEXT = '正在准备页面资源'
 
-const originalFetch =
-  window.fetch.bind(window)
+const CRITICAL_SPECS: Array<[string, string?]> = [
+  ['400 16px "LXGW WenKai"'],
+  ['400 16px "LXGW WenKai"', CRITICAL_CJK_TEXT],
+  ['400 16px "Pacifico"'],
+]
 
-let pendingRequests = 0
-
-let isTracking = true
-
-/*
- * 是否为天气接口。
- *
- * 天气明确不参与首屏 Loading。
- */
-
-function isWeatherRequest(
-  input: RequestInfo | URL,
-) {
-  let url = ''
-
-  if (typeof input === 'string') {
-    url = input
-  } else if (input instanceof URL) {
-    url = input.href
-  } else {
-    url = input.url
+function triggerFontLoad(): Promise<void> {
+  if (typeof document === 'undefined' || !document.fonts) {
+    return Promise.resolve()
   }
 
-  return url.startsWith(
-    siteConfig.weather.api,
+  const jobs = CRITICAL_SPECS.map(([spec, text]) =>
+    document.fonts.load(spec, text).catch(() => undefined),
   )
+
+  return Promise.all(jobs).then(() => undefined)
 }
 
 /*
- * 判断是否仍有页面初始化请求。
+ * 顶层立即触发 —— 不 await，只是让请求尽早发出。
  */
+const initialFontPromise = triggerFontLoad()
+
+/* =====================================================
+   全局 fetch 拦截
+   ===================================================== */
+
+const originalFetch = window.fetch.bind(window)
+
+let pendingRequests = 0
+let isTracking = true
+
+function isWeatherRequest(input: RequestInfo | URL) {
+  let url = ''
+  if (typeof input === 'string') url = input
+  else if (input instanceof URL) url = input.href
+  else url = input.url
+  return url.startsWith(siteConfig.weather.api)
+}
 
 function hasPendingRequests() {
   return pendingRequests > 0
 }
 
-/*
- * 替换 fetch。
- *
- * LoadingScreen 在 setup 阶段就执行，
- * 因此可以捕获后续组件 onMounted 中
- * 发起的 Hitokoto / Music / Lyrics 请求。
- */
-
-window.fetch = (
-  async function (
-    input: RequestInfo | URL,
-    init?: RequestInit,
-  ) {
-    /*
-     * Loading 已经结束后，
-     * 不再继续统计请求。
-     */
-
-    if (
-      !isTracking ||
-      isWeatherRequest(input)
-    ) {
-      return originalFetch(
-        input,
-        init,
-      )
-    }
-
-    pendingRequests++
-
-    try {
-      return await originalFetch(
-        input,
-        init,
-      )
-    } finally {
-      pendingRequests--
-
-      /*
-       * 防止异常情况下出现负数。
-       */
-
-      if (pendingRequests < 0) {
-        pendingRequests = 0
-      }
-    }
-  } as typeof window.fetch
-)
-
-/* =====================================================
-   图片加载
-   ===================================================== */
-
-/*
- * 等待当前页面已经进入 DOM 的图片。
- *
- * lazy 图片不参与首屏阻塞，
- * 避免社交图标等懒加载资源导致 Loading 永远不消失。
- */
-
-async function waitForImages() {
-  const images =
-    Array.from(
-      document.images,
-    ).filter(
-      (image) =>
-        image.loading !== 'lazy',
-    )
-
-  if (images.length === 0) {
-    return
+window.fetch = (async function (
+  input: RequestInfo | URL,
+  init?: RequestInit,
+) {
+  if (!isTracking || isWeatherRequest(input)) {
+    return originalFetch(input, init)
   }
 
-  await Promise.all(
-    images.map(
-      (image) =>
-        new Promise<void>(
-          (resolve) => {
-            /*
-             * 已完成加载。
-             */
+  pendingRequests++
+  try {
+    return await originalFetch(input, init)
+  } finally {
+    pendingRequests--
+    if (pendingRequests < 0) pendingRequests = 0
+  }
+} as typeof window.fetch)
 
-            if (
-              image.complete
-            ) {
-              resolve()
-              return
-            }
+/* =====================================================
+   工具
+   ===================================================== */
 
-            /*
-             * 正常加载完成。
-             */
+function nextFrame(): Promise<void> {
+  return new Promise((resolve) => {
+    requestAnimationFrame(() => resolve())
+  })
+}
 
-            const handleLoad = () => {
-              cleanup()
-              resolve()
-            }
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => {
+    window.setTimeout(resolve, ms)
+  })
+}
 
-            /*
-             * 图片加载失败也不能让 Loading 永久卡住。
-             */
-
-            const handleError = () => {
-              cleanup()
-              resolve()
-            }
-
-            const cleanup = () => {
-              image.removeEventListener(
-                'load',
-                handleLoad,
-              )
-
-              image.removeEventListener(
-                'error',
-                handleError,
-              )
-            }
-
-            image.addEventListener(
-              'load',
-              handleLoad,
-              {
-                once: true,
-              },
-            )
-
-            image.addEventListener(
-              'error',
-              handleError,
-              {
-                once: true,
-              },
-            )
-          },
-        ),
-    ),
-  )
+function withTimeout<T>(
+  promise: Promise<T>,
+  ms: number,
+): Promise<T | void> {
+  return Promise.race([
+    promise,
+    new Promise<void>((resolve) => {
+      window.setTimeout(resolve, ms)
+    }),
+  ])
 }
 
 /* =====================================================
-   浏览器布局稳定
+   字体等待
    ===================================================== */
-
-/*
- * 等待 Vue DOM 更新 + 浏览器完成布局。
- */
-
-async function waitForLayout() {
-  await nextTick()
-
-  /*
-   * 第一帧：
-   * 让 Vue / DOM 更新进入浏览器渲染周期。
-   */
-
-  await new Promise<void>(
-    (resolve) => {
-      requestAnimationFrame(() => {
-        resolve()
-      })
-    },
-  )
-
-  /*
-   * 第二帧：
-   * 给图片、字体、CSS 和布局变化
-   * 留出一个完整渲染周期。
-   */
-
-  await new Promise<void>(
-    (resolve) => {
-      requestAnimationFrame(() => {
-        resolve()
-      })
-    },
-  )
-}
-
-/* =====================================================
-   字体
-   ===================================================== */
-
-/*
- * 等待字体加载完成。
- *
- * 如果浏览器不支持 document.fonts，
- * 直接跳过。
- */
 
 async function waitForFonts() {
-  if (
-    !document.fonts ||
-    !document.fonts.ready
-  ) {
-    return
-  }
+  if (!document.fonts) return
 
   try {
-    await document.fonts.ready
+    const jobs: Promise<unknown>[] = [
+      /* fonts.ready 兜底 */
+      document.fonts.ready.then(() => undefined),
+      /* 复用顶层已经触发的加载 */
+      initialFontPromise,
+    ]
+
+    await withTimeout(
+      Promise.all(jobs).then(() => undefined),
+      FONT_TIMEOUT_MS,
+    )
   } catch {
-    /*
-     * 字体失败不阻塞首屏。
-     */
+    /* 字体整体超时，不阻塞 */
   }
 }
 
 /* =====================================================
-   首屏稳定检查
+   图片等待
    ===================================================== */
 
-/*
- * 不能看到 pendingRequests === 0
- * 就立刻关闭 Loading。
- *
- * 例如：
- *
- * Music Playlist 请求结束
- *          ↓
- * Vue watch 响应
- *          ↓
- * 开始请求歌词
- *
- * 所以这里必须再等待几个渲染周期确认。
- */
-
-async function waitForStablePage() {
-  /*
-   * 等待 Vue 更新。
-   */
-
-  await nextTick()
-
-  /*
-   * 等待字体。
-   */
-
-  await waitForFonts()
-
-  /*
-   * 等待图片。
-   */
-
-  await waitForImages()
-
-  /*
-   * 等待浏览器布局。
-   */
-
-  await waitForLayout()
-
-  /*
-   * 再检查一次请求。
-   */
-
-  if (
-    hasPendingRequests()
-  ) {
-    return false
-  }
-
-  /*
-   * 再延迟一个微任务，
-   * 防止 watch / Promise.then
-   * 在当前任务末尾继续发起请求。
-   */
-
-  await Promise.resolve()
-
-  if (
-    hasPendingRequests()
-  ) {
-    return false
-  }
-
-  /*
-   * 再等待一帧。
-   *
-   * 这样可以捕获：
-   *
-   * API 完成
-   * → Vue 更新
-   * → watch
-   * → 新请求
-   */
-
-  await new Promise<void>(
-    (resolve) => {
-      requestAnimationFrame(() => {
-        resolve()
-      })
-    },
+async function waitForImages() {
+  const images = Array.from(document.images).filter(
+    (image) =>
+      image.loading !== 'lazy' &&
+      !image.classList.contains('background-image'),
   )
 
-  return !hasPendingRequests()
+  if (images.length === 0) return
+
+  const loadAll = Promise.all(
+    images.map(
+      (image) =>
+        new Promise<void>((resolve) => {
+          if (image.complete) {
+            resolve()
+            return
+          }
+
+          const done = () => {
+            image.removeEventListener('load', done)
+            image.removeEventListener('error', done)
+            resolve()
+          }
+
+          image.addEventListener('load', done, { once: true })
+          image.addEventListener('error', done, { once: true })
+        }),
+    ),
+  )
+
+  await withTimeout(loadAll, IMAGE_TIMEOUT_MS)
 }
 
 /* =====================================================
-   结束 Loading
+   背景等待
    ===================================================== */
 
-let finishTimer:
-  number | undefined
-
-let destroyed = false
-
-async function finishLoadingWhenReady() {
-  /*
-   * 最多检查几轮。
-   *
-   * 防止某个组件因为异常不断创建请求，
-   * 导致 Loading 一直死循环。
-   */
-
-  for (
-    let attempt = 0;
-    attempt < 20;
-    attempt++
-  ) {
-    if (destroyed) {
-      return
-    }
-
-    const stable =
-      await waitForStablePage()
-
-    if (stable) {
-      /*
-       * 再给浏览器一个极短的稳定窗口。
-       */
-
-      await new Promise<void>(
-        (resolve) => {
-          finishTimer =
-            window.setTimeout(
-              resolve,
-              50,
-            )
-        },
-      )
-
-      if (
-        destroyed ||
-        hasPendingRequests()
-      ) {
-        continue
-      }
-
-      /*
-       * 正式结束 Loading。
-       */
-
-      isTracking = false
-
-      visible.value = false
-
-      /*
-       * 同步更新原来的 Pinia 状态，
-       * 这样其他地方如果使用 isLoading
-       * 也会得到正确状态。
-       */
-
-      appStore.finishLoading()
-
-      return
-    }
-
-    /*
-     * 当前还有请求，
-     * 下一轮继续检查。
-     */
-
-    await new Promise<void>(
-      (resolve) => {
-        requestAnimationFrame(() => {
-          resolve()
-        })
-      },
-    )
-  }
-
-  /*
-   * 理论上的兜底。
-   *
-   * 即使某个接口持续异常，
-   * 也不会让整个页面永远卡在 Loading。
-   */
-
-  if (
-    !destroyed
-  ) {
-    isTracking = false
-
-    visible.value = false
-
-    appStore.finishLoading()
-  }
+function isBackgroundReady() {
+  return appStore.isBackgroundReady
 }
 
 /* =====================================================
-   Mounted
+   单次稳定检查
+   ===================================================== */
+
+async function checkStableOnce(): Promise<boolean> {
+  await nextTick()
+
+  await Promise.all([
+    waitForFonts(),
+    waitForImages(),
+  ])
+
+  for (let i = 0; i < STABLE_FRAMES; i++) {
+    if (hasPendingRequests()) return false
+    if (!isBackgroundReady()) return false
+
+    await nextFrame()
+  }
+
+  return !hasPendingRequests() && isBackgroundReady()
+}
+
+/* =====================================================
+   关闭 Loading
+   ===================================================== */
+
+let hardTimer: number | undefined
+let destroyed = false
+
+function clearTimers() {
+  if (hardTimer !== undefined) {
+    window.clearTimeout(hardTimer)
+    hardTimer = undefined
+  }
+}
+
+function closeLoading() {
+  if (destroyed) return
+
+  clearTimers()
+
+  isTracking = false
+  visible.value = false
+  appStore.finishLoading()
+}
+
+/* =====================================================
+   主流程
+   ===================================================== */
+
+async function finishLoadingWhenReady() {
+  const hardTimeout = new Promise<'timeout'>((resolve) => {
+    hardTimer = window.setTimeout(() => {
+      resolve('timeout')
+    }, MAX_LOADING_MS)
+  })
+
+  const waitReady = (async (): Promise<'ready' | 'timeout'> => {
+    const deadline = Date.now() + MAX_LOADING_MS
+
+    while (Date.now() < deadline && !destroyed) {
+      const stable = await checkStableOnce()
+
+      if (stable) {
+        await sleep(CHECK_INTERVAL_MS)
+
+        if (destroyed) return 'timeout'
+
+        if (!hasPendingRequests() && isBackgroundReady()) {
+          return 'ready'
+        }
+      }
+
+      await sleep(CHECK_INTERVAL_MS)
+    }
+
+    return 'timeout'
+  })()
+
+  await Promise.race([waitReady, hardTimeout])
+
+  closeLoading()
+}
+
+/* =====================================================
+   Loading 文字淡入
+   =====================================================
+
+   字体就绪 → 淡入（观感最佳）
+   字体超时 → 也用 fallback 淡入（避免 Loading 空白太久）
+   ===================================================== */
+
+async function revealLoadingContent() {
+  const fontReady = Promise.race([
+    initialFontPromise.then(() => 'ready' as const),
+    sleep(FONT_FADE_IN_MAX_WAIT_MS).then(() => 'timeout' as const),
+  ])
+
+  await fontReady
+
+  if (destroyed) return
+
+  contentReady.value = true
+}
+
+/* =====================================================
+   Mounted / Unmounted
    ===================================================== */
 
 onMounted(() => {
+  void revealLoadingContent()
   void finishLoadingWhenReady()
 })
 
-/* =====================================================
-   Unmounted
-   ===================================================== */
-
 onUnmounted(() => {
   destroyed = true
-
   isTracking = false
-
-  /*
-   * 恢复原始 fetch。
-   */
-
-  window.fetch =
-    originalFetch
-
-  if (
-    finishTimer !== undefined
-  ) {
-    window.clearTimeout(
-      finishTimer,
-    )
-
-    finishTimer = undefined
-  }
+  window.fetch = originalFetch
+  clearTimers()
 })
 </script>
 
 <template>
-  <!--
-    关键：显式告诉 Vue 这次 leave 需要 1000ms 才移除元素。
+  <Transition
+    name="loading-splash"
+    :duration="{ enter: 400, leave: 1000 }"
+  >
+    <div
+      v-if="visible"
+      class="loading-screen"
+      aria-label="页面正在加载"
+      aria-live="polite"
+    >
+      <div
+        class="loading-curtain loading-curtain--left"
+        aria-hidden="true"
+      />
 
-    否则 Vue 会读根元素的 transition-duration，
-    读到 0s 就立刻把整屏从 DOM 移除，
-    子元素的过渡根本来不及播放。
-  -->
-  <Transition name="loading-splash" :duration="{ enter: 400, leave: 1000 }">
-    <div v-if="visible" class="loading-screen" aria-label="页面正在加载" aria-live="polite">
-      <!-- =================================
-           左右两块幕布
+      <div
+        class="loading-curtain loading-curtain--right"
+        aria-hidden="true"
+      />
 
-           纯色，不透明，无 backdrop-filter。
-           两块颜色完全一致，不可能出现分界。
-           ================================= -->
-
-      <div class="loading-curtain loading-curtain--left" aria-hidden="true" />
-
-      <div class="loading-curtain loading-curtain--right" aria-hidden="true" />
-
-      <!-- =================================
-           内容层
-           ================================= -->
-
-      <div class="loading-content">
-        <!-- 波浪文字 -->
-
+      <div
+        class="loading-content"
+        :class="{ 'is-ready': contentReady }"
+      >
         <p class="loading-title" aria-label="Loading">
-          <span v-for="(char, index) in loadingText" :key="index" class="loading-letter" aria-hidden="true" :style="{
-            animationDelay: `${index * 0.09}s`,
-          }">
+          <span
+            v-for="(char, index) in loadingText"
+            :key="index"
+            class="loading-letter"
+            aria-hidden="true"
+            :style="{
+              animationDelay: `${index * 0.09}s`,
+            }"
+          >
             {{ char }}
           </span>
         </p>
-
-        <!-- 副标题 -->
 
         <p class="loading-subtitle">
           正在准备页面资源
@@ -561,13 +394,6 @@ onUnmounted(() => {
    Screen
    ================================= */
 
-/*
- * 屏幕本身负责"整块模糊"。
- *
- * 全屏一次采样，没有分界。
- * 幕布拉开后，看到的就是这一层。
- */
-
 .loading-screen {
   position: fixed;
 
@@ -577,19 +403,8 @@ onUnmounted(() => {
 
   overflow: hidden;
 
-  /*
-   * 建立独立层叠上下文，
-   * 避免幕布拉开时和主页的玻璃层叠关系冲突。
-   */
   isolation: isolate;
 
-  /*
-   * 整块屏幕做模糊。
-   *
-   * 因为是一整块元素做 backdrop-filter，
-   * 采样区域覆盖全屏，
-   * 不可能出现"左右两半色差"的问题。
-   */
   backdrop-filter:
     blur(20px) saturate(140%);
 
@@ -603,41 +418,21 @@ onUnmounted(() => {
    Curtain
    ================================= */
 
-/*
- * 幕布是"半透明叠加色"。
- *
- * 不再自己做 backdrop-filter，
- * 只是叠加在屏幕的模糊层之上。
- *
- * 两块幕布用的是同一个 color-mix 表达式，
- * 值完全一致，中间不会有分界线。
- */
-
 .loading-curtain {
   position: absolute;
 
   top: 0;
   bottom: 0;
 
-  /*
-   * 精确 50%，不重叠。
-   */
   width: 50%;
 
-  /*
-   * 半透明叠加色。
-   *
-   * 60% 让幕布看起来"够实"，
-   * 剩下的 40% 透出屏幕的模糊层。
-   */
   background:
-    color-mix(in srgb,
+    color-mix(
+      in srgb,
       var(--page-background) 60%,
-      transparent);
+      transparent
+    );
 
-  /*
-   * 让 transform 动画跑在合成层。
-   */
   will-change: transform;
 
   backface-visibility: hidden;
@@ -653,6 +448,12 @@ onUnmounted(() => {
 
 /* =================================
    Content
+   =================================
+
+   字体就绪前：opacity 0（不可见，但占据布局）
+   字体就绪后：淡入
+
+   这样用户不会看到字体从 fallback 跳到 LXGW WenKai。
    ================================= */
 
 .loading-content {
@@ -676,9 +477,23 @@ onUnmounted(() => {
 
   text-align: center;
 
+  /* 关键：等字体 */
+  opacity: 0;
+
+  transform: translateY(6px);
+
+  transition:
+    opacity 0.35s ease,
+    transform 0.35s ease;
+
   will-change:
     transform,
     opacity;
+}
+
+.loading-content.is-ready {
+  opacity: 1;
+  transform: translateY(0);
 }
 
 /* =================================
@@ -692,28 +507,29 @@ onUnmounted(() => {
 
   justify-content: center;
 
-  /* 让字母之间的位移有富余空间 */
   padding-bottom: 10px;
 
   margin: 0;
 
-  color:
-    var(--text-color);
+  font-family:
+    'LXGW WenKai',
+    system-ui,
+    -apple-system,
+    BlinkMacSystemFont,
+    'Microsoft YaHei',
+    sans-serif;
 
-  font-size:
-    42px;
+  color: var(--text-color);
 
-  font-weight:
-    700;
+  font-size: 42px;
 
-  line-height:
-    1;
+  font-weight: 700;
 
-  letter-spacing:
-    0.02em;
+  line-height: 1;
 
-  text-shadow:
-    var(--text-shadow);
+  letter-spacing: 0.02em;
+
+  text-shadow: var(--text-shadow);
 
   transition:
     color 0.35s ease,
@@ -727,10 +543,6 @@ onUnmounted(() => {
 .loading-letter {
   display: inline-block;
 
-  /*
-   * 每个字母独立做波浪，
-   * 通过 animationDelay 错开时间。
-   */
   animation:
     loading-wave 1.5s ease-in-out infinite;
 
@@ -738,8 +550,7 @@ onUnmounted(() => {
     transform,
     opacity;
 
-  transform-origin:
-    center bottom;
+  transform-origin: center bottom;
 }
 
 /* =================================
@@ -747,20 +558,23 @@ onUnmounted(() => {
    ================================= */
 
 .loading-subtitle {
-  margin:
-    14px 0 0;
+  margin: 14px 0 0;
 
-  color:
-    var(--text-secondary);
+  font-family:
+    'LXGW WenKai',
+    system-ui,
+    -apple-system,
+    BlinkMacSystemFont,
+    'Microsoft YaHei',
+    sans-serif;
 
-  font-size:
-    13px;
+  color: var(--text-secondary);
 
-  line-height:
-    1.6;
+  font-size: 13px;
 
-  letter-spacing:
-    0.05em;
+  line-height: 1.6;
+
+  letter-spacing: 0.05em;
 
   text-shadow:
     var(--text-shadow-secondary);
@@ -771,77 +585,37 @@ onUnmounted(() => {
 }
 
 /* =================================
-   Keyframes — Letter Wave
+   Keyframes
    ================================= */
 
 @keyframes loading-wave {
-
   0%,
   60%,
   100% {
-    transform:
-      translateY(0) scale(1);
-
-    opacity:
-      0.55;
+    transform: translateY(0) scale(1);
+    opacity: 0.55;
   }
 
   30% {
-    transform:
-      translateY(-12px) scale(1.06);
-
-    opacity:
-      1;
+    transform: translateY(-12px) scale(1.06);
+    opacity: 1;
   }
 }
 
 /* =================================
-   Splash Transition — Enter
+   Transition
    ================================= */
 
-/*
- * 首屏 visible 初始就是 true，
- * 一般不会走 enter。
- *
- * 保留一份，以防某些场景重新挂载。
- */
-
 .loading-splash-enter-active {
-  transition:
-    opacity 0.4s ease;
+  transition: opacity 0.4s ease;
 }
 
 .loading-splash-enter-from {
-  opacity:
-    0;
+  opacity: 0;
 }
 
-/* =================================
-   Splash Transition — Leave
-   ================================= */
-
-/*
- * 退场时间轴：
- *
- * 0.00s ─┬─ 内容开始淡出 + 轻微上浮（0.28s）
- *        │
- * 0.18s ─┼─ 左右幕布向两侧滑走（0.7s）
- *        │
- * 0.28s ─┤  内容完全消失
- *        │
- * 0.50s ─┼─ 整块屏幕（含模糊层）开始淡出（0.5s）
- *        │
- * 0.88s ─┤  幕布完全滑出，露出完整模糊层
- *        │
- * 1.00s ─┴─ 屏幕完全淡出，露出主页
- */
-
 .loading-splash-leave-active {
-  /*
-   * 屏幕自身的淡出，延迟 0.5s 开始。
-   */
-  transition:
-    opacity 0.5s ease 0.5s;
+  transition: opacity 0.5s ease 0.5s;
 }
 
 .loading-splash-leave-active .loading-content {
@@ -857,26 +631,20 @@ onUnmounted(() => {
 }
 
 .loading-splash-leave-to {
-  opacity:
-    0;
+  opacity: 0;
 }
 
 .loading-splash-leave-to .loading-content {
-  opacity:
-    0;
-
-  transform:
-    translateY(-8px) scale(0.985);
+  opacity: 0;
+  transform: translateY(-8px) scale(0.985);
 }
 
 .loading-splash-leave-to .loading-curtain--left {
-  transform:
-    translate3d(-100%, 0, 0);
+  transform: translate3d(-100%, 0, 0);
 }
 
 .loading-splash-leave-to .loading-curtain--right {
-  transform:
-    translate3d(100%, 0, 0);
+  transform: translate3d(100%, 0, 0);
 }
 
 /* =================================
@@ -885,46 +653,31 @@ onUnmounted(() => {
 
 @media (max-width: 420px) {
   .loading-title {
-    font-size:
-      34px;
-
-    padding-bottom:
-      8px;
+    font-size: 34px;
+    padding-bottom: 8px;
   }
 
   .loading-subtitle {
-    margin-top:
-      12px;
-
-    font-size:
-      12px;
+    margin-top: 12px;
+    font-size: 12px;
   }
 
   @keyframes loading-wave {
-
     0%,
     60%,
     100% {
-      transform:
-        translateY(0) scale(1);
-
-      opacity:
-        0.55;
+      transform: translateY(0) scale(1);
+      opacity: 0.55;
     }
 
     30% {
-      transform:
-        translateY(-10px) scale(1.06);
-
-      opacity:
-        1;
+      transform: translateY(-10px) scale(1.06);
+      opacity: 1;
     }
   }
 
-  /* 小屏：时长稍短一点，节奏更紧凑 */
   .loading-splash-leave-active {
-    transition:
-      opacity 0.4s ease 0.5s;
+    transition: opacity 0.4s ease 0.5s;
   }
 
   .loading-splash-leave-active .loading-content {
@@ -939,13 +692,9 @@ onUnmounted(() => {
       transform 0.6s cubic-bezier(0.65, 0, 0.35, 1) 0.16s;
   }
 
-  /* 移动端 blur 减小，避免低端机掉帧 */
   .loading-screen {
-    backdrop-filter:
-      blur(14px) saturate(130%);
-
-    -webkit-backdrop-filter:
-      blur(14px) saturate(130%);
+    backdrop-filter: blur(14px) saturate(130%);
+    -webkit-backdrop-filter: blur(14px) saturate(130%);
   }
 }
 
@@ -954,39 +703,32 @@ onUnmounted(() => {
    ================================= */
 
 @media (prefers-reduced-motion: reduce) {
-
   .loading-letter {
-    animation:
-      none;
-
-    transform:
-      none;
-
-    opacity:
-      1;
+    animation: none;
+    transform: none;
+    opacity: 1;
   }
 
-  /*
-   * 关掉动效时，不再"左右拉开"，
-   * 直接整体淡出。
-   */
+  .loading-content {
+    transition: none;
+    opacity: 1;
+    transform: none;
+  }
+
   .loading-splash-leave-active,
   .loading-splash-leave-active .loading-content,
   .loading-splash-leave-active .loading-curtain--left,
   .loading-splash-leave-active .loading-curtain--right {
-    transition:
-      opacity 0.3s ease;
+    transition: opacity 0.3s ease;
   }
 
   .loading-splash-leave-to {
-    opacity:
-      0;
+    opacity: 0;
   }
 
   .loading-splash-leave-to .loading-curtain--left,
   .loading-splash-leave-to .loading-curtain--right {
-    transform:
-      none;
+    transform: none;
   }
 }
 </style>

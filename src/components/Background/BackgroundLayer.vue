@@ -30,13 +30,47 @@ let mediaQuery: MediaQueryList | null = null
 
 let themeObserver: MutationObserver | null = null
 
-let loadTimeoutId: number | null = null
+let apiTimerId: number | null = null
+
+let localTimerId: number | null = null
 
 /* 已尝试过的本地图片，避免失败后反复取到同一张 */
-let triedLocalImages = new Set<string>()
+const triedLocalImages = new Set<string>()
+
+/* 本地图片最多尝试次数 */
+const MAX_LOCAL_ATTEMPTS = 2
+
+let localAttempts = 0
+
+/* 幂等完成标志 */
+let backgroundReady = false
+
+let destroyed = false
 
 /* =================================
-   当前主题
+   超时配置
+   ================================= */
+
+/*
+ * API 超时：硬上限 30 秒。
+ *
+ * 优先读 site.ts 配置，但压到 30s 以内。
+ * 配置为 0 / 未配置时，直接用 30000。
+ */
+const API_TIMEOUT = (() => {
+  const configured =
+    siteConfig.background.apiTimeout || 0
+
+  return configured > 0
+    ? Math.min(configured, 30000)
+    : 30000
+})()
+
+/* 本地图片超时：本地图应该很快，5 秒足够 */
+const LOCAL_TIMEOUT = 5000
+
+/* =================================
+   主题
    ================================= */
 
 function getCurrentTheme(): Theme {
@@ -54,22 +88,22 @@ function updateTheme() {
    ================================= */
 
 function updateDeviceType() {
-  isMobile.value =
-    mediaQuery?.matches ?? false
+  isMobile.value = mediaQuery?.matches ?? false
 }
 
-function handleMediaChange(
-  event: MediaQueryListEvent,
-) {
+function handleMediaChange(event: MediaQueryListEvent) {
   isMobile.value = event.matches
 
   /*
-   * 当前已经在使用本地图片时，
-   * 按新的设备类型重新随机一张。
+   * 只有"当前是本地图 + 还没完成"时，
+   * 才按新的设备类型重新随机一张。
    */
-  if (source.value === 'local') {
-    triedLocalImages = new Set()
-
+  if (
+    source.value === 'local' &&
+    !backgroundReady
+  ) {
+    triedLocalImages.clear()
+    localAttempts = 0
     loadLocalImage()
   }
 }
@@ -85,17 +119,14 @@ function pickLocalImage(): string {
     ? local.mobile
     : local.desktop
 
-  const pool = preferred.length > 0
-    ? preferred
-    : local.desktop
+  const pool =
+    preferred.length > 0 ? preferred : local.desktop
 
   const candidates = pool.filter(
     (item) => !triedLocalImages.has(item),
   )
 
-  if (candidates.length === 0) {
-    return ''
-  }
+  if (candidates.length === 0) return ''
 
   const index = Math.floor(
     Math.random() * candidates.length,
@@ -105,82 +136,138 @@ function pickLocalImage(): string {
 }
 
 /* =================================
-   超时控制
+   幂等完成
    ================================= */
 
-function clearLoadTimeout() {
-  if (loadTimeoutId === null) {
-    return
-  }
+function markBackgroundReady(success: boolean) {
+  if (backgroundReady || destroyed) return
 
-  window.clearTimeout(loadTimeoutId)
+  backgroundReady = true
 
-  loadTimeoutId = null
-}
+  imageLoaded.value = success
+  imageFailed.value = !success
 
-function startLoadTimeout() {
-  clearLoadTimeout()
-
-  const timeout =
-    siteConfig.background.apiTimeout
-
-  if (!timeout || timeout <= 0) {
-    return
-  }
-
-  loadTimeoutId = window.setTimeout(() => {
-    loadTimeoutId = null
-
-    /* API 图片超时，回退到本地图片 */
-    if (
-      source.value === 'api' &&
-      !imageLoaded.value
-    ) {
-      loadLocalImage()
-    }
-  }, timeout)
+  /*
+   * 只通知 store "背景已就绪"，
+   * 关闭 Loading 由 LoadingScreen 统一决策。
+   */
+  appStore.setBackgroundReady(true)
 }
 
 /* =================================
-   加载流程
+   超时清理
+   ================================= */
+
+function clearApiTimeout() {
+  if (apiTimerId === null) return
+  window.clearTimeout(apiTimerId)
+  apiTimerId = null
+}
+
+function clearLocalTimeout() {
+  if (localTimerId === null) return
+  window.clearTimeout(localTimerId)
+  localTimerId = null
+}
+
+function clearAllTimeouts() {
+  clearApiTimeout()
+  clearLocalTimeout()
+}
+
+/* =================================
+   API 加载（优先）
    ================================= */
 
 function loadApiImage() {
+  if (destroyed || backgroundReady) return
+
   const { api } = siteConfig.background
 
   if (!api) {
     loadLocalImage()
-
     return
   }
 
   source.value = 'api'
-
   imageFailed.value = false
-
   imageSrc.value = api
 
-  startLoadTimeout()
+  clearApiTimeout()
+
+  apiTimerId = window.setTimeout(() => {
+    apiTimerId = null
+
+    if (destroyed || backgroundReady) return
+    if (source.value !== 'api' || imageLoaded.value) {
+      return
+    }
+
+    /*
+     * API 超时 → 中止 API 请求 → 切换到本地图
+     *
+     * 注：Vue 更新 <img :src> 后，
+     * 浏览器会自动取消对旧 API URL 的下载。
+     */
+    console.warn(
+      `[Background] API 图片加载超时（${API_TIMEOUT}ms），中止 API 请求，切换到本地图片`,
+    )
+
+    loadLocalImage()
+  }, API_TIMEOUT)
 }
 
+/* =================================
+   本地加载
+   ================================= */
+
 function loadLocalImage() {
-  clearLoadTimeout()
+  if (destroyed || backgroundReady) return
+
+  /* 从 API 切换到本地时，清掉 API 超时 */
+  clearApiTimeout()
+
+  if (localAttempts >= MAX_LOCAL_ATTEMPTS) {
+    console.warn(
+      '[Background] 本地图片全部尝试失败，放弃',
+    )
+    markBackgroundReady(false)
+    return
+  }
 
   const src = pickLocalImage()
 
   if (!src) {
-    finishLoadingWithFailure()
-
+    console.warn(
+      '[Background] 没有可用的本地图片',
+    )
+    markBackgroundReady(false)
     return
   }
 
+  localAttempts++
   triedLocalImages.add(src)
 
   source.value = 'local'
-
   imageFailed.value = false
-
   imageSrc.value = src
+
+  clearLocalTimeout()
+
+  localTimerId = window.setTimeout(() => {
+    localTimerId = null
+
+    if (destroyed || backgroundReady) return
+    if (source.value !== 'local' || imageLoaded.value) {
+      return
+    }
+
+    console.warn(
+      `[Background] 本地图片加载超时（${LOCAL_TIMEOUT}ms），尝试下一张`,
+    )
+
+    loadLocalImage()
+  }, LOCAL_TIMEOUT)
 }
 
 /* =================================
@@ -188,46 +275,41 @@ function loadLocalImage() {
    ================================= */
 
 function handleImageLoad() {
-  clearLoadTimeout()
+  if (destroyed || backgroundReady) return
 
-  imageLoaded.value = true
+  clearAllTimeouts()
 
-  imageFailed.value = false
+  console.log(
+    `[Background] 图片加载完成：${source.value}`,
+  )
 
-  appStore.setBackgroundReady(true)
-
-  appStore.finishLoading()
+  markBackgroundReady(true)
 }
 
 function handleImageError() {
-  clearLoadTimeout()
+  if (destroyed || backgroundReady) return
 
-  /*
-   * API 图片失败 -> 回退本地图片
-   * 本地图片失败 -> 换列表里的另一张
-   * 全部尝试失败 -> finishLoadingWithFailure
-   */
+  clearAllTimeouts()
+
+  if (source.value === 'api') {
+    console.warn(
+      '[Background] API 图片加载失败，切换到本地图片',
+    )
+  } else {
+    console.warn(
+      '[Background] 本地图片加载失败，尝试下一张',
+    )
+  }
+
   loadLocalImage()
 }
 
-function finishLoadingWithFailure() {
-  imageLoaded.value = false
-
-  imageFailed.value = true
-
-  appStore.setBackgroundReady(true)
-
-  appStore.finishLoading()
-}
-
 /* =================================
-   Mounted
+   Mounted / Unmounted
    ================================= */
 
 onMounted(() => {
-  /* ---------------------------------
-     Theme
-     --------------------------------- */
+  /* Theme */
 
   updateTheme()
 
@@ -235,24 +317,14 @@ onMounted(() => {
     updateTheme()
   })
 
-  themeObserver.observe(
-    document.documentElement,
-    {
-      attributes: true,
-      attributeFilter: [
-        'data-theme',
-      ],
-    },
-  )
+  themeObserver.observe(document.documentElement, {
+    attributes: true,
+    attributeFilter: ['data-theme'],
+  })
 
-  /* ---------------------------------
-     Mobile
-     --------------------------------- */
+  /* Mobile */
 
-  mediaQuery =
-    window.matchMedia(
-      '(max-width: 760px)',
-    )
+  mediaQuery = window.matchMedia('(max-width: 760px)')
 
   updateDeviceType()
 
@@ -262,96 +334,79 @@ onMounted(() => {
       handleMediaChange,
     )
   } else {
-    mediaQuery.addListener(
-      handleMediaChange,
-    )
+    mediaQuery.addListener(handleMediaChange)
   }
 
-  /* ---------------------------------
-     Background
-     --------------------------------- */
+  /* Background: API 优先，最多 30s，超时切本地 */
 
   loadApiImage()
 })
 
-/* =================================
-   Unmounted
-   ================================= */
-
 onUnmounted(() => {
-  clearLoadTimeout()
+  destroyed = true
+  backgroundReady = true
+
+  clearAllTimeouts()
 
   if (themeObserver) {
     themeObserver.disconnect()
-
     themeObserver = null
   }
 
   if (mediaQuery) {
-    if (
-      mediaQuery.removeEventListener
-    ) {
+    if (mediaQuery.removeEventListener) {
       mediaQuery.removeEventListener(
         'change',
         handleMediaChange,
       )
     } else {
-      mediaQuery.removeListener(
-        handleMediaChange,
-      )
+      mediaQuery.removeListener(handleMediaChange)
     }
-
     mediaQuery = null
   }
 })
 </script>
 
 <template>
-  <div class="background-layer" :class="[
-    `theme-${theme}`,
-    {
-      'is-loaded':
-        imageLoaded,
-
-      'is-failed':
-        imageFailed,
-    },
-  ]" aria-hidden="true">
+  <div
+    class="background-layer"
+    :class="[
+      `theme-${theme}`,
+      {
+        'is-loaded': imageLoaded,
+        'is-failed': imageFailed,
+      },
+    ]"
+    aria-hidden="true"
+  >
     <!-- =================================
          Background Image
          ================================= -->
 
-    <img v-if="
-      !imageFailed &&
-      imageSrc
-    " class="background-image" :src="imageSrc" alt="" decoding="async" @load="handleImageLoad"
-      @error="handleImageError" />
+    <img
+      v-if="!imageFailed && imageSrc"
+      :key="imageSrc"
+      class="background-image"
+      :src="imageSrc"
+      alt=""
+      decoding="async"
+      fetchpriority="high"
+      @load="handleImageLoad"
+      @error="handleImageError"
+    />
 
-    <!-- =================================
-         Dark Overlay
-         ================================= -->
+    <!-- Dark Overlay -->
+    <div
+      class="background-tint background-tint-dark"
+    />
 
-    <div class="
-        background-tint
-        background-tint-dark
-      " />
+    <!-- Light Overlay -->
+    <div
+      class="background-tint background-tint-light"
+    />
 
-    <!-- =================================
-         Light Overlay
-         ================================= -->
-
-    <div class="
-        background-tint
-        background-tint-light
-      " />
-
-    <!-- =================================
-         Vignette
-         ================================= -->
-
-    <div class="
-        background-vignette
-      " />
+    <!-- Vignette -->
+    <div class="background-vignette" />
   </div>
 </template>
 
@@ -368,13 +423,11 @@ onUnmounted(() => {
   z-index: -2;
 
   width: 100%;
-
   height: 100%;
 
   overflow: hidden;
 
-  background:
-    var(--page-background);
+  background: var(--page-background);
 
   pointer-events: none;
 }
@@ -391,22 +444,17 @@ onUnmounted(() => {
   display: block;
 
   width: 100%;
-
   height: 100%;
 
   object-fit: cover;
-
-  object-position:
-    center center;
+  object-position: center center;
 
   opacity: 0;
 
   filter: none;
-
   transform: none;
 
-  transition:
-    opacity 0.65s ease;
+  transition: opacity 0.65s ease;
 }
 
 .background-layer.is-loaded .background-image {
@@ -428,8 +476,7 @@ onUnmounted(() => {
 
   opacity: 0;
 
-  transition:
-    opacity 0.45s ease;
+  transition: opacity 0.45s ease;
 }
 
 /* =================================
@@ -438,13 +485,16 @@ onUnmounted(() => {
 
 .background-tint-dark {
   background:
-    radial-gradient(circle at 20% 18%,
+    radial-gradient(
+      circle at 20% 18%,
       rgb(110 78 135 / 7%) 0%,
-      transparent 40%),
-
-    linear-gradient(135deg,
+      transparent 40%
+    ),
+    linear-gradient(
+      135deg,
       rgb(8 7 15 / 24%),
-      rgb(24 17 39 / 28%));
+      rgb(24 17 39 / 28%)
+    );
 }
 
 /* =================================
@@ -453,17 +503,21 @@ onUnmounted(() => {
 
 .background-tint-light {
   background:
-    radial-gradient(circle at 18% 18%,
+    radial-gradient(
+      circle at 18% 18%,
       rgb(255 255 255 / 22%) 0%,
-      transparent 42%),
-
-    radial-gradient(circle at 82% 76%,
+      transparent 42%
+    ),
+    radial-gradient(
+      circle at 82% 76%,
       rgb(255 245 250 / 11%) 0%,
-      transparent 44%),
-
-    linear-gradient(135deg,
+      transparent 44%
+    ),
+    linear-gradient(
+      135deg,
       rgb(255 255 255 / 8%),
-      rgb(255 255 255 / 11%));
+      rgb(255 255 255 / 11%)
+    );
 }
 
 /* =================================
@@ -504,24 +558,24 @@ onUnmounted(() => {
   pointer-events: none;
 
   background:
-    radial-gradient(ellipse at center,
+    radial-gradient(
+      ellipse at center,
       transparent 48%,
-      rgb(5 4 10 / 9%) 100%);
+      rgb(5 4 10 / 9%) 100%
+    );
 
   transition:
     opacity 0.45s ease,
     background 0.45s ease;
 }
 
-/* =================================
-   Light Vignette
-   ================================= */
-
 .background-layer.theme-light .background-vignette {
   background:
-    radial-gradient(ellipse at center,
+    radial-gradient(
+      ellipse at center,
       transparent 62%,
-      rgb(55 42 70 / 4%) 100%);
+      rgb(55 42 70 / 4%) 100%
+    );
 }
 
 /* =================================
@@ -530,8 +584,7 @@ onUnmounted(() => {
 
 @media (max-width: 760px) {
   .background-image {
-    object-position:
-      center center;
+    object-position: center center;
   }
 }
 
@@ -540,7 +593,6 @@ onUnmounted(() => {
    ================================= */
 
 @media (prefers-reduced-motion: reduce) {
-
   .background-image,
   .background-tint,
   .background-vignette {

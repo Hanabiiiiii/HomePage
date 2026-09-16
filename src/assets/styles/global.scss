@@ -3,7 +3,17 @@
 @use './variables.scss';
 @use './animations.scss';
 
-@import url('https://cdn.jsdelivr.net/npm/lxgw-wenkai-webfont/style.css');
+/*
+ * LXGW WenKai 字体 CSS 不在这里 @import。
+ *
+ * 原因：@import 在 CSS 里是串行加载，
+ * 会在 global.scss 解析完之后才开始下载，
+ * 拖慢字体开始加载的时间。
+ *
+ * 现在在 index.html 的 <head> 里通过
+ * <link rel="preload"> + <link rel="stylesheet"> 引入，
+ * 让字体 CSS 和页面 CSS 并行下载。
+ */
 
 /* =================================
    Pacifico

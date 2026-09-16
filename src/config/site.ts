@@ -63,7 +63,7 @@ export const siteConfig = {
 
     /* API 超时时间（毫秒），超时后回退到本地图片 */
     apiTimeout:
-      6000,
+      45000,
 
     /*
      * 本地回退图片：API 超时或加载失败时随机取一张。

@@ -1,16 +1,42 @@
 <!doctype html>
-<html lang="en">
-
+<html lang="zh-CN">
 <head>
-  <meta charset="UTF-8" />
-  <link rel="icon" type="image/png" href="/icon/logo.png" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="icon" type="image/svg+xml" href="/vite.svg">
   <title>花火の主页</title>
+
+  <!-- ================================================
+       字体优先加载
+       ================================================ -->
+
+  <!-- 1. 预连接 jsdelivr：省 DNS + TLS 握手 -->
+  <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
+  <link rel="dns-prefetch" href="https://cdn.jsdelivr.net">
+
+  <!-- 2. 预加载 LXGW WenKai 字体 CSS，并立刻应用 -->
+  <link
+    rel="preload"
+    as="style"
+    href="https://cdn.jsdelivr.net/npm/lxgw-wenkai-webfont/style.css"
+  >
+  <link
+    rel="stylesheet"
+    href="https://cdn.jsdelivr.net/npm/lxgw-wenkai-webfont/style.css"
+  >
+
+  <!-- 3. 预加载本地 Pacifico 字体文件 -->
+  <link
+    rel="preload"
+    href="/font/Pacifico-Regular-all.ttf"
+    as="font"
+    type="font/ttf"
+    crossorigin
+  >
 </head>
 
 <body>
   <div id="app"></div>
   <script type="module" src="/src/main.ts"></script>
 </body>
-
 </html>
