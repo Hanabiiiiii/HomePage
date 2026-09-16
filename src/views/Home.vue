@@ -57,7 +57,7 @@ import { siteConfig } from '@/config/site'
         <span>
           ©
           {{ new Date().getFullYear() }}
-          {{ siteConfig.profile.name }}
+          {{ siteConfig.profile.title }}
         </span>
 
         <span class="footer-divider">

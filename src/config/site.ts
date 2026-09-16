@@ -161,6 +161,8 @@ export const siteConfig = {
      ================================= */
 
   profile: {
+    title:
+      '花火',
     name:
       'fwneko.com',
 
